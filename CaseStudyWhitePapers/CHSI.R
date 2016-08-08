@@ -7,9 +7,11 @@
 ##
 ##OBTAINED ON: 7/22/16
 
+##Load libraries
 library(stringr)
 library(dplyr)
 library(ggmap)
+
 ##Read in CHSI and CHR data files
 setwd('c:/program files (x86)/git/projects/expectedx/data') #Temporary working directory
 files <- list.files(pattern = '*.csv')
@@ -25,7 +27,7 @@ split <- strsplit(as.character(HCAHPS.csv$latlong), ",", fixed = TRUE) #Split by
 HCAHPS.csv$latitude <- sapply(split, '[', 1) #Extract latitude
 HCAHPS.csv$longitude <- sapply(split, '[', 2) #Extract longitude
 
-HCAHPS.csv <- filter(HCAHPS.csv, State != 'PR', State != 'GU', State != 'MP', State != 'VI')
+HCAHPS.csv <- filter(HCAHPS.csv, State != 'PR', State != 'GU', State != 'MP', State != 'VI') #Remove territories 
 
 nolatlong <- filter(HCAHPS.csv, is.na(latlong)) #Extract hospital addresses with no coordinates
 nolatlong <- select(nolatlong, Provider.ID, Location) #Select address variable
@@ -34,17 +36,12 @@ nolatlong[,2] <- gsub('#', '', nolatlong[,2]) #Remove number sign
 nolatlong <- cbind(unique(nolatlong)[,1], geocode(unique(nolatlong[,2]))) #Geocode addresses with latitude/longitude
 names(nolatlong) <- c('Provider.ID','longitude','latitude') #Match names to HCAHPS.csv data frame
 
-HCAHPS.csv <- merge(HCAHPS.csv, nolatlong, by = 'Provider.ID', all = TRUE)
+HCAHPS.csv <- merge(HCAHPS.csv, nolatlong, by = 'Provider.ID', all = TRUE) #Merge geocoded addresses with original
 
 HCAHPS.csv$latitude.x <- ifelse(is.na(HCAHPS.csv$latitude.x), HCAHPS.csv$latitude.y, HCAHPS.csv$latitude.x)
 HCAHPS.csv$longitude.x <- ifelse(is.na(HCAHPS.csv$longitude.x), HCAHPS.csv$longitude.y, HCAHPS.csv$longitude.x)
 
-
-
-
-
 setwd('c:/program files (x86)/git/projects/expectedx') #Reset working directory
-
 
 
 
