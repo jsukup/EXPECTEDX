@@ -28,8 +28,7 @@ CHSI.data <- readData('/mnt/common/work/ExpX/r/data/CHSI/datafiles'
 CHSI.data$LEADINGCAUSESOFDEATH[1:2] <- list(NULL) #remove FIPS columns.
 CHSI.data$LEADINGCAUSESOFDEATH <- merge(CHSI.data$LEADINGCAUSESOFDEATH, CHSI.data$DEMOGRAPHICS[1:4]
                                         , by=c("CHSI_County_Name", "CHSI_State_Name")) #add back in FIPS
-#CHSI.data.all <- Reduce(function(...) merge(..., by="County_FIPS_Code"), CHSI.data) #this is the "proper" way to do it, but crashes my R
-CHSI.data.all <- Reduce(merge, CHSI.data) #seems good enough
+CHSI.data.all <- Reduce(merge, CHSI.data)
 
 ##read in CHR data
 CHR.data <- readData('/mnt/common/work/ExpX/r/data/CHR'
