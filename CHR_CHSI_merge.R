@@ -3,7 +3,7 @@
 ###CHSI: Community Health Status Indicators
 ###CHR Obtained From: http://www.countyhealthrankings.org/rankings/data
 ###CHSI Obtained From: https://catalog.data.gov/dataset/community-health-status-indicators-chsi-to-combat-obesity-heart-disease-and-cancer
-###Data Obtained On: 8/16/2016
+###Data Obtained On: 8/10/2016
 
 ##functions
 #for reading in data and putting into a list
