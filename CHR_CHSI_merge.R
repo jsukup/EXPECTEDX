@@ -3,7 +3,15 @@
 ###CHSI: Community Health Status Indicators
 ###CHR Obtained From: http://www.countyhealthrankings.org/rankings/data
 ###CHSI Obtained From: https://catalog.data.gov/dataset/community-health-status-indicators-chsi-to-combat-obesity-heart-disease-and-cancer
-###Data Obtained On: 8/10/2016
+###Data Obtained On: 8/16/2016
+
+##load libraries
+library(car)
+
+##directories
+dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
+dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
+dir.export <- '/mnt/common/work/ExpX/r/data/export'
 
 ##functions
 #for reading in data and putting into a list
@@ -19,8 +27,10 @@ readData <- function(dir, classes=NULL) {
 }
 
 ##read in CHSI data
-CHSI.data <- readData('/mnt/common/work/ExpX/r/data/CHSI/datafiles'
-                      , c("State_FIPS_Code"="factor", "County_FIPS_Code"="factor"))
+CHSI.data <- readData(dir.data.CHSI, c("State_FIPS_Code"="factor", "County_FIPS_Code"="factor"))
+
+#check for unneccesary datasets and remove
+CHSI.data <- CHSI.data[-which(lapply(CHSI.data, nrow) != 3141)]
 
 ##merge CHSI data
 #NOTE: LEADINGCAUSESFODEATH is messed up a bit.  The FIPS codes were converted to ints
@@ -30,9 +40,12 @@ CHSI.data$LEADINGCAUSESOFDEATH <- merge(CHSI.data$LEADINGCAUSESOFDEATH, CHSI.dat
                                         , by=c("CHSI_County_Name", "CHSI_State_Name")) #add back in FIPS
 CHSI.data.all <- Reduce(merge, CHSI.data)
 
+##recode CHSI data
+CHSI.replaceData <- c(-9999, -2222, -2222.2, -2, -1111.1, -1111, -1)
+CHSI.data.all <- recode(CHSI.data.all, 'CHSI.replaceData = NA')
+
 ##read in CHR data
-CHR.data <- readData('/mnt/common/work/ExpX/r/data/CHR'
-                     , c("STATECODE"="factor", "COUNTYCODE"="factor"))
+CHR.data <- readData(dir.data.CHR, c("STATECODE"="factor", "COUNTYCODE"="factor"))
 
 ##rename Code Columns and remove state roll-up
 names(CHR.data[[1]])[names(CHR.data[[1]])=="STATECODE"] <- "State_FIPS_Code"
@@ -44,3 +57,9 @@ CHR.data.all <- Reduce(merge, CHR.data)
 
 ##merge CHSI and CHR
 CHSI.CHR.data.all <- merge(CHSI.data.all, CHR.data.all)
+
+##export data to .csv
+setwd(dir.export)
+write.csv(CHSI.data.all, file = "CHSI_data_all.csv")
+write.csv(CHR.data.all, file = "CHR_data_all.csv")
+write.csv(CHSI.CHR.data.all, file = "CHSI_CSR_data_all.csv")
