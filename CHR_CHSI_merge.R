@@ -30,7 +30,8 @@ readData <- function(dir, classes=NULL) {
 CHSI.data <- readData(dir.data.CHSI, c("State_FIPS_Code"="factor", "County_FIPS_Code"="factor"))
 
 #check for unneccesary datasets and remove
-CHSI.data <- CHSI.data[-which(lapply(CHSI.data, nrow) != 3141)]
+if(length(CHSI.data) > 1)
+  CHSI.data <- CHSI.data[-which(lapply(CHSI.data, nrow) != 3141)]
 
 ##merge CHSI data
 #NOTE: LEADINGCAUSESFODEATH is messed up a bit.  The FIPS codes were converted to ints
@@ -46,6 +47,10 @@ CHSI.data.all <- recode(CHSI.data.all, 'CHSI.replaceData = NA')
 
 ##read in CHR data
 CHR.data <- readData(dir.data.CHR, c("STATECODE"="factor", "COUNTYCODE"="factor"))
+
+#check for unneccesary datasets and remove
+if(length(CHR.data) > 1)
+  CHR.data <- CHR.data[-which(lapply(CHR.data, nrow) != 3141)]
 
 ##rename Code Columns and remove state roll-up
 names(CHR.data[[1]])[names(CHR.data[[1]])=="STATECODE"] <- "State_FIPS_Code"
