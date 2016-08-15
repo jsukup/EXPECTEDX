@@ -8,6 +8,8 @@
 
 ##load libraries
 library(car)
+library(stringr)
+library(ggmap)
 
 ##directories
 dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
@@ -90,3 +92,37 @@ CHSI.CHR.data.all <- merge(CHSI.data.all, CHR.data.all)
 ##export data to .csv
 if(export.CHSI.CSR)
   exportData(dir.export, CHSI.CHR.data.all, "CHSI_CHR_data_all.csv")
+
+##HCAHPS DATA
+#read in data
+HCAHPS.data <- readData(dir.data.HCAHPS)
+
+##merge CHR data (made to be expandable)
+HCAHPS.data.all <- Reduce(merge, HCAHPS.data)
+
+HCAHPS.data.all$latlong <- str_extract(HCAHPS.data.all$Location,'\\(\\d*\\.\\d*\\, ?-\\d*\\.\\d*\\)') #Extract latitude/longitude between parenthesis
+HCAHPS.data.all$latlong <- gsub('\\(','',HCAHPS.data.all$latlong) #Remove leading parenthesis
+HCAHPS.data.all$latlong <- gsub('\\)','',HCAHPS.data.all$latlong) #Remove trailing parenthesis
+
+split <- strsplit(as.character(HCAHPS.data.all$latlong), ",", fixed = TRUE) #Split by comma
+
+HCAHPS.data.all$latitude <- sapply(split, '[', 1) #Extract latitude
+HCAHPS.data.all$longitude <- sapply(split, '[', 2) #Extract longitude
+
+HCAHPS.data.all <- filter(HCAHPS.data.all, State != 'PR', State != 'GU', State != 'MP', State != 'VI') #Remove territories 
+
+nolatlong <- filter(HCAHPS.data.all, is.na(latlong)) #Extract hospital addresses with no coordinates
+nolatlong <- select(nolatlong, Provider.ID, Location) #Select address variable
+nolatlong[,2] <- gsub(',', '', nolatlong[,2]) #Remove commas
+nolatlong[,2] <- gsub('#', '', nolatlong[,2]) #Remove number sign
+nolatlong <- cbind(unique(nolatlong)[,1], geocode(unique(nolatlong[,2]))) #Geocode addresses with latitude/longitude
+names(nolatlong) <- c('Provider.ID','longitude','latitude') #Match names to HCAHPS.data.all data frame
+
+HCAHPS.data.all <- merge(HCAHPS.data.all, nolatlong, by = 'Provider.ID', all = TRUE) #Merge geocoded addresses with original
+
+HCAHPS.data.all$latitude.x <- ifelse(is.na(HCAHPS.data.all$latitude.x), HCAHPS.data.all$latitude.y, HCAHPS.data.all$latitude.x)
+HCAHPS.data.all$longitude.x <- ifelse(is.na(HCAHPS.data.all$longitude.x), HCAHPS.data.all$longitude.y, HCAHPS.data.all$longitude.x)
+
+##export data
+if(export.HCAHPS)
+  exportData(dir.export, HCAHPS.data.all, "HCAHPS_data_all.csv")
