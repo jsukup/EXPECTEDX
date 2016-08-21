@@ -136,6 +136,47 @@ HCAHPS.data.all <- HCAHPS.copy
 ##Code below here will process everything into a "nice" form.
 ##TODO: Optimize.  For loop was used, but there is probably a more efficent way.
 ##Runtime on my PC is about a minute or so with i5 2.6  Not too bad
+hospitals <- unique(HCAHPS.data.all$Provider.ID)
+subCols <- c("Provider.ID", "HCAHPS.Measure.ID", "HCAHPS.Question", "HCAHPS.Answer.Description"
+             , "Patient.Survey.Star.Rating", "Patient.Survey.Star.Rating.Footnote"
+             , "HCAHPS.Answer.Percent", "HCAHPS.Answer.Percent.Footnote", "HCAHPS.Linear.Mean.Value")
+subData <- HCAHPS.data.all[subCols]
+
+testdat <- (lapply(subdata[subdata$Provider.ID == 10001, ], paste, collapse=";"))
+testdat2 <- (lapply(subdata[subdata$Provider.ID == 10005, ], paste, collapse=";"))
+
+testdat3 <- rbind(testdat, testdat2)
+
+test5 <- lapply(hospitals, function(x) subData[subData$Provider.ID == x, ])
+
+test5 <- lapply(hospitals, function(x) filter(subData, Provider.ID == x))
+test6 <- as.data.frame(t(apply(test5[[1]], 2, paste, collapse=";")))
+
+test6 <- lapply(as.data.frame(test5), paste, collapse=";")
+test6 <- lapply(filter(subData, Provider.ID == x), paste, collapse=";")
+
+test6 <- as.data.frame(t(paste(test5[[1]], collapse=";")), col.names=colnames(subdata))
+test6$Provider.ID = subdata$Provider.ID[1]
+
+test8 <- as.data.frame(lapply(lapply(hospitals, function(x) filter(subdata, Provider.ID == x), paste, collapse=";")))
+
+test <- lapply(lapply(hospitals, function(x) subData[subdata$Provider.ID == x, ]), paste, sep=";")
+test2 <- bind_rows(as.data.frame(test))
+str(test)
+
+test3 <- lapply(subdata[subdata$Provider.ID == 10001, ], paste, collapse=";")
+test4 <- lapply(subdata[subdata$Provider.ID == 10005, ], paste, collapse=";")
+testb <- as.data.frame(rbind(test3, test4))
+
+test2 <- as.data.frame(do.call(
+  rbind, lapply(
+    lapply(
+      hospitals, function(x) HCAHPS.data.all[HCAHPS.data.all$Provider.ID == x, ]), paste, collapse=";")))
+
+test$Provider.ID <- 10001
+hospitals[1]
+dataList <- as.data.frame(lapply(lapply(hospitals, function(x) HCAHPS.data.all[HCAHPS.data.all$Provider.ID == x, ] ), paste, collapse=";"))
+
 hospitals <- c(unique(HCAHPS.data.all$Provider.ID))
 
 subData <- select(HCAHPS.data.all, Provider.ID, HCAHPS.Measure.ID, HCAHPS.Question, HCAHPS.Answer.Description
