@@ -63,6 +63,18 @@ CHSI.data.all <- Reduce(merge, CHSI.data)
 CHSI.replaceData <- c(-9999, -2222, -2222.2, -2, -1111.1, -1111, -1)
 CHSI.data.all <- as.data.frame(lapply(CHSI.data.all, Recode, "CHSI.replaceData=NA"))
 
+##keep only needed rows
+CHSI.data.all <- select(CHSI.data.all, State_FIPS_Code, County_FIPS_Code
+                        , A_Wh_Comp, A_Bl_Comp, A_Ot_Comp, A_Hi_Comp, B_Wh_Cancer
+                        , B_Bl_Cancer, B_Ot_Cancer, B_Hi_Cancer, C_Wh_Suicide, C_Bl_Suicide
+                        , C_Ot_Suicide, C_Hi_Suicide, C_Wh_Cancer, C_Bl_Cancer, C_Ot_Cancer
+                        , C_Hi_Cancer, D_Wh_Cancer, D_Bl_Cancer, D_Ot_Cancer, D_Hi_Cancer
+                        , D_Wh_HeartDis, D_Bl_HeartDis, D_Ot_HeartDis, D_Hi_HeartDis, D_Wh_Suicide
+                        , D_Bl_Suicide, D_Ot_Suicide, D_Hi_Suicide, E_Wh_Cancer, E_Bl_Cancer
+                        , E_Ot_Cancer, E_Hi_Cancer, E_Wh_HeartDis, E_Bl_HeartDis, E_Ot_HeartDis
+                        , E_Hi_HeartDis, F_Wh_HeartDis, F_Bl_HeartDis, F_Ot_HeartDis, F_Hi_HeartDis
+                        , F_Wh_Cancer, F_Bl_Cancer, F_Ot_Cancer, F_Hi_Cancer)
+
 #export to .csv
 if(export.CHSI)
   exportData(dir.export, CHSI.data.all, "CHSI_data_all.csv")
@@ -83,6 +95,39 @@ CHR.data[[1]] <- subset(CHR.data[[1]], County_FIPS_Code!="000")
 ##merge CHR data (made to be expandable)
 CHR.data.all <- Reduce(merge, CHR.data)
 
+##keep only needed rows
+CHR.data.all <- select(CHR.data.all, State_FIPS_Code, County_FIPS_Code
+                       , Premature.death.Value
+                       , Poor.or.fair.health.Value
+                       , Poor.physical.health.days.Value
+                       , Poor.mental.health.days.Value
+                       , Low.birthweight.Value
+                       , Adult.smoking.Value
+                       , Adult.obesity.Value
+                       , Food.environment.index.Value
+                       , Physical.inactivity.Value
+                       , Access.to.exercise.opportunities.Value
+                       , Excessive.drinking.Value
+                       , Alcohol.impaired.driving.deaths.Value
+                       , Sexually.transmitted.infections.Value
+                       , Teen.births.Value
+                       , Primary.care.physicians.Value
+                       , Mental.health.providers.Value
+                       , Preventable.hospital.stays.Value
+                       , Population.estimate.Value
+                       , Percent.of.population.below.18.years.of.age
+                       , Percent.of.population.aged.65.years.and.older
+                       , Percent.of.population.that.is.non.Hispanic.African.American
+                       , Percent.of.population.that.is.American.Indian.or.Alaskan.Native
+                       , Percent.of.population.that.is.Asian
+                       , Percent.of.population.that.is.Native.Hawaiian.or.Other.Pacific.Islander
+                       , Percent.of.population.that.is.Hispanic
+                       , Percent.of.population.that.is.non.Hispanic.White
+                       , Population.that.is.not.proficient.in.English.Value
+                       , Percent.of.population.that.is.female
+                       , Population.living.in.a.rural.area.Value
+                       , Diabetes.Value
+                       , Other.primary.care.providers.Value)
 ##export to .csv
 if(export.CHR)
   exportData(dir.export, CHR.data.all, "CHR_data_all.csv")
@@ -97,6 +142,17 @@ if(export.CHSI.CSR)
 ##HCAHPS DATA
 #read in data
 HCAHPS.data <- readData(dir.data.HCAHPS)
+
+##filter out unneeded rows
+HCAHPS.data$`Patient_survey__HCAHPS__-_Hospital` <- filter(HCAHPS.data$`Patient_survey__HCAHPS__-_Hospital`
+                                                           , HCAHPS.Measure.ID == 'H_COMP_1_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_COMP_2_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_COMP_3_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_COMP_5_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_COMP_6_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_COMP_7_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_HSP_RATING_LINEAR_SCORE'
+                                                           | HCAHPS.Measure.ID == 'H_RECMND_LINEAR_SCORE')
 
 ##merge CHR data (made to be expandable)
 HCAHPS.data.all <- Reduce(merge, HCAHPS.data)
@@ -140,7 +196,7 @@ HCAHPS.subData <- lapply(HCAHPS.hospitals, function(x) filter(HCAHPS.subData, Pr
 HCAHPS.subData <- bind_rows(lapply(HCAHPS.subData, function(x) as.data.frame(t(apply(x, 2, paste, collapse=";"))))) #concatenate cols into one row
 HCAHPS.subData$Provider.ID <- gsub('.*;', '', HCAHPS.subData$Provider.ID) #fix provider ID names
 
-HCAHPS.data.all <- filter(HCAHPS.data.all, HCAHPS.Measure.ID ==  "H_COMP_3_LINEAR_SCORE") #select only one row for each provider ID
+HCAHPS.data.all <- filter(HCAHPS.data.all, HCAHPS.Measure.ID ==  "H_COMP_1_LINEAR_SCORE") #select only one row for each provider ID
 HCAHPS.data.all <- select(HCAHPS.data.all, -HCAHPS.Measure.ID, -HCAHPS.Question, -HCAHPS.Answer.Description #drop cols to be replaced
                           , -Patient.Survey.Star.Rating, -Patient.Survey.Star.Rating.Footnote
                           , -HCAHPS.Answer.Percent, -HCAHPS.Answer.Percent.Footnote, -HCAHPS.Linear.Mean.Value)
