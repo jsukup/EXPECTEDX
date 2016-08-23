@@ -20,10 +20,10 @@ dir.export <- '/mnt/common/work/ExpX/r/data/export'
 
 ##switches
 #set to true to export .csv
-export.CHSI <- FALSE
-export.CHR <- FALSE
-export.CHSI.CSR <- FALSE
-export.HCAHPS <- FALSE
+export.CHSI <- TRUE
+export.CHR <- TRUE
+export.CHSI.CSR <- TRUE
+export.HCAHPS <- TRUE
 
 ##functions
 #for reading in data and putting into a list
@@ -129,76 +129,24 @@ HCAHPS.data.all <- as.data.frame(lapply(HCAHPS.data.all, Recode, "'Not Applicabl
 HCAHPS.data.all$longitude.y <- NULL  #drop extra lat/lon columns
 HCAHPS.data.all$latitude.y <- NULL
 
-#save copy
-HCAHPS.copy <- HCAHPS.data.all
-HCAHPS.data.all <- HCAHPS.copy
-
 ##Code below here will process everything into a "nice" form.
-##TODO: Optimize.  For loop was used, but there is probably a more efficent way.
-##Runtime on my PC is about a minute or so with i5 2.6  Not too bad
-hospitals <- unique(HCAHPS.data.all$Provider.ID)
-subCols <- c("Provider.ID", "HCAHPS.Measure.ID", "HCAHPS.Question", "HCAHPS.Answer.Description"
+HCAHPS.hospitals <- unique(HCAHPS.data.all$Provider.ID) #Extract provider ID list
+HCAHPS.subCols <- c("Provider.ID", "HCAHPS.Measure.ID", "HCAHPS.Question", "HCAHPS.Answer.Description"
              , "Patient.Survey.Star.Rating", "Patient.Survey.Star.Rating.Footnote"
-             , "HCAHPS.Answer.Percent", "HCAHPS.Answer.Percent.Footnote", "HCAHPS.Linear.Mean.Value")
-subData <- HCAHPS.data.all[subCols]
+             , "HCAHPS.Answer.Percent", "HCAHPS.Answer.Percent.Footnote", "HCAHPS.Linear.Mean.Value") #List of columns for subdata
+HCAHPS.subData <- HCAHPS.data.all[HCAHPS.subCols] #select only subset of data as defined above
 
-testdat <- (lapply(subdata[subdata$Provider.ID == 10001, ], paste, collapse=";"))
-testdat2 <- (lapply(subdata[subdata$Provider.ID == 10005, ], paste, collapse=";"))
+HCAHPS.subData <- lapply(HCAHPS.hospitals, function(x) filter(HCAHPS.subData, Provider.ID == x)) #create a list of df grouped by prov.id
+HCAHPS.subData <- bind_rows(lapply(HCAHPS.subData, function(x) as.data.frame(t(apply(x, 2, paste, collapse=";"))))) #concatenate cols into one row
+HCAHPS.subData$Provider.ID <- gsub('.*;', '', HCAHPS.subData$Provider.ID) #fix provider ID names
 
-testdat3 <- rbind(testdat, testdat2)
-
-test5 <- lapply(hospitals, function(x) subData[subData$Provider.ID == x, ])
-
-test5 <- lapply(hospitals, function(x) filter(subData, Provider.ID == x))
-test6 <- as.data.frame(t(apply(test5[[1]], 2, paste, collapse=";")))
-
-test6 <- lapply(as.data.frame(test5), paste, collapse=";")
-test6 <- lapply(filter(subData, Provider.ID == x), paste, collapse=";")
-
-test6 <- as.data.frame(t(paste(test5[[1]], collapse=";")), col.names=colnames(subdata))
-test6$Provider.ID = subdata$Provider.ID[1]
-
-test8 <- as.data.frame(lapply(lapply(hospitals, function(x) filter(subdata, Provider.ID == x), paste, collapse=";")))
-
-test <- lapply(lapply(hospitals, function(x) subData[subdata$Provider.ID == x, ]), paste, sep=";")
-test2 <- bind_rows(as.data.frame(test))
-str(test)
-
-test3 <- lapply(subdata[subdata$Provider.ID == 10001, ], paste, collapse=";")
-test4 <- lapply(subdata[subdata$Provider.ID == 10005, ], paste, collapse=";")
-testb <- as.data.frame(rbind(test3, test4))
-
-test2 <- as.data.frame(do.call(
-  rbind, lapply(
-    lapply(
-      hospitals, function(x) HCAHPS.data.all[HCAHPS.data.all$Provider.ID == x, ]), paste, collapse=";")))
-
-test$Provider.ID <- 10001
-hospitals[1]
-dataList <- as.data.frame(lapply(lapply(hospitals, function(x) HCAHPS.data.all[HCAHPS.data.all$Provider.ID == x, ] ), paste, collapse=";"))
-
-hospitals <- c(unique(HCAHPS.data.all$Provider.ID))
-
-subData <- select(HCAHPS.data.all, Provider.ID, HCAHPS.Measure.ID, HCAHPS.Question, HCAHPS.Answer.Description
-                  , Patient.Survey.Star.Rating, Patient.Survey.Star.Rating.Footnote
-                  , HCAHPS.Answer.Percent, HCAHPS.Answer.Percent.Footnote, HCAHPS.Linear.Mean.Value)
-
-dataList <- as.data.frame(lapply(filter(subData, Provider.ID == 10001), paste, collapse=";"))
-dataList$Provider.ID = as.integer(dataList$Provider.ID)
-dataList[1,1] <- hospitals[1]
-for(i in 2:length(hospitals)) {
-  dataList <- rbind(dataList, as.data.frame(lapply(filter(subData, Provider.ID == hospitals[i]), paste, collapse=";")))
-  dataList$Provider.ID = as.integer(dataList$Provider.ID)
-  dataList[i,1] <- hospitals[i]
-}
-
-HCAHPS.data.all <- filter(HCAHPS.data.all, HCAHPS.Measure.ID ==  "H_COMP_3_LINEAR_SCORE")
-HCAHPS.data.all <- select(HCAHPS.data.all, -HCAHPS.Measure.ID, -HCAHPS.Question, -HCAHPS.Answer.Description
+HCAHPS.data.all <- filter(HCAHPS.data.all, HCAHPS.Measure.ID ==  "H_COMP_3_LINEAR_SCORE") #select only one row for each provider ID
+HCAHPS.data.all <- select(HCAHPS.data.all, -HCAHPS.Measure.ID, -HCAHPS.Question, -HCAHPS.Answer.Description #drop cols to be replaced
                           , -Patient.Survey.Star.Rating, -Patient.Survey.Star.Rating.Footnote
                           , -HCAHPS.Answer.Percent, -HCAHPS.Answer.Percent.Footnote, -HCAHPS.Linear.Mean.Value)
 
 
-HCAHPS.data.all <- merge(HCAHPS.data.all, dataList)
+HCAHPS.data.all <- merge(HCAHPS.data.all, HCAHPS.subData) #replace cols
 
 if(export.HCAHPS)
   exportData(dir.export, HCAHPS.data.all, "HCAHPS_data_all.csv")
