@@ -11,12 +11,19 @@ library(car)
 library(dplyr)
 library(stringr)
 library(ggmap)
+library(jsonlite)
+library(RCurl)
 
 ##directories
 dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
 dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
 dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
+dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
 dir.export <- '/mnt/common/work/ExpX/r/data/export'
+
+##urls
+url.broadband.pt1 <- 'http://www.broadbandmap.gov/broadbandmap/almanac/jun2014/rankby/state/'
+url.broadband.pt2 <- '/population/downloadSpeedGreaterThan10000k/county?format=json&order=asc'
 
 ##switches
 #set to true to export .csv
@@ -206,3 +213,19 @@ HCAHPS.data.all <- merge(HCAHPS.data.all, HCAHPS.subData) #replace cols
 
 if(export.HCAHPS)
   exportData(dir.export, HCAHPS.data.all, "HCAHPS_data_all.csv")
+
+##BROADBAND DATA
+states <- c("01","02","03","04","05","06","07","08","09", 10:50)
+BB.data <- lapply(states, function(x) getURL(paste(paste(url.broadband.pt1, x, sep=""), url.broadband.pt2, sep="")))  #pull data
+
+BB.data.all <- lapply(BB.data, fromJSON)  #put into list
+BB.data.all <- lapply(BB.data.all, function(x) Reduce(rbind, x[4]))  #extract dfs
+BB.data.all <- bind_rows(Reduce(rbind, BB.data.all))  #row bind dfs
+
+FIPS.lookup <- read.csv(paste(dir.data.FIPS, "/national_county.txt", sep="")
+                        , header=FALSE
+                        , colClasses=c("character", "character", "character", "character", "character"))
+colnames(FIPS.lookup) <- c("State", "stateFips", "County_FIPS_Code","geographyName", "Donno")
+FIPS.lookup$geographyName <- gsub("*County", "", FIPS.lookup$geographyName)
+FIPS.lookup$Donno <- NULL
+FIPS.lookup$State <- NULL
