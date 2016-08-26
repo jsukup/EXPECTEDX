@@ -13,13 +13,22 @@ library(stringr)
 library(ggmap)
 library(jsonlite)
 library(RCurl)
+library(data.table)
 
 ##directories
-dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
-dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
-dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
-dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
-dir.export <- '/mnt/common/work/ExpX/r/data/export'
+#dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
+#dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
+#dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
+#dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
+#dir.data.HPSA <- '/mnt/common/work/ExpX/r/data/HPSA'
+#dir.export <- '/mnt/common/work/ExpX/r/data/export'
+
+dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
+dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
+dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
+dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
+dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
+dir.export <- 'D:/work/ExpX/r/data/export'
 
 ##urls
 url.broadband.pt1 <- 'http://www.broadbandmap.gov/broadbandmap/almanac/jun2014/rankby/state/'
@@ -222,10 +231,70 @@ BB.data.all <- lapply(BB.data, fromJSON)  #put into list
 BB.data.all <- lapply(BB.data.all, function(x) Reduce(rbind, x[4]))  #extract dfs
 BB.data.all <- bind_rows(Reduce(rbind, BB.data.all))  #row bind dfs
 
-FIPS.lookup <- read.csv(paste(dir.data.FIPS, "/national_county.txt", sep="")
-                        , header=FALSE
-                        , colClasses=c("character", "character", "character", "character", "character"))
+FIPS.colClasses <- c("character", "character", "character", "character", "character")  #to avoid factors
+FIPS.lookup <- read.csv(paste(dir.data.FIPS, "/national_county.txt", sep=""), header=FALSE, colClasses=FIPS.colClasses)
 colnames(FIPS.lookup) <- c("State", "stateFips", "County_FIPS_Code","geographyName", "Donno")
-FIPS.lookup$geographyName <- gsub("*County", "", FIPS.lookup$geographyName)
+FIPS.lookup$geographyName <- gsub("*\\sCounty", "", FIPS.lookup$geographyName)
 FIPS.lookup$Donno <- NULL
-FIPS.lookup$State <- NULL
+
+FIPS.lookup <- filter(FIPS.lookup, State != "AS"
+                      , State != "FM"
+                      , State != "GU"
+                      , State != "MH"
+                      , State != "MP"
+                      , State != "PW"
+                      , State != "PR"
+                      , State != "VI"
+                      , State != "UM")
+
+
+US.state <- unique(FIPS.lookup$State)
+FIPS.lookup$FIPS <- paste(FIPS.lookup$stateFips, FIPS.lookup$County_FIPS_Code, sep="")
+
+BB.data.all <- merge(FIPS.lookup, BB.data.all)
+
+##HPSA DATA
+HPSA.data <- readData(dir.data.HPSA, "character")
+
+HPSA.data <- lapply(HPSA.data, filter, HPSA.Type.Code == "Hpsa Geo", HPSA.Status.Description != "Withdrawn")  #filter all but geo
+HPSA.data <- lapply(HPSA.data, filter
+                    , HPSA.State.Abbreviation != "AS"
+                    , HPSA.State.Abbreviation != "FM"
+                    , HPSA.State.Abbreviation != "GU"
+                    , HPSA.State.Abbreviation != "MH"
+                    , HPSA.State.Abbreviation != "MP"
+                    , HPSA.State.Abbreviation != "PW"
+                    , HPSA.State.Abbreviation != "PR"
+                    , HPSA.State.Abbreviation != "VI"
+                    , HPSA.State.Abbreviation != "UM")  #filter out unneeded states
+
+
+#extract list of unique FIPS and calculate average
+HPSA.FIPS <- lapply(HPSA.data, function(x) unique(x$State.and.County.Federal.Information.Processing.Standard.Code))
+
+HPSA.FIPS.avg <- Map(function(x,y) lapply(x, function(z) filter(y, State.and.County.Federal.Information.Processing.Standard.Code==z)), HPSA.FIPS, HPSA.data)  #create dataframe of dataframes grouped by FIPS
+HPSA.FIPS.avg <- lapply(HPSA.FIPS.avg, function(x) lapply(x, function(y) cbind(y$State.and.County.Federal.Information.Processing.Standard.Code[1]
+                                                                               , mean(as.numeric(as.data.table(y)[, .SD[which.max(HPSA.Score)], by = HPSA.Source.Name]$HPSA.Score))
+                                                                               , mean(as.numeric(as.data.table(y)[, .SD[which.max(HPSA.Shortage)], by = HPSA.Source.Name]$HPSA.Shortage)))))  #compute average
+HPSA.FIPS.avg <- lapply(HPSA.FIPS.avg, function(...) do.call(rbind.data.frame, ...))  #merge together
+
+#fix cols
+#TODO: cleanup
+HPSA.FIPS.avg.colnames <- c("State.and.County.Federal.Information.Processing.Standard.Code", "HPSA.Score.Avg", "HPSA.Shortage.Avg")
+colnames(HPSA.FIPS.avg[[1]]) <- HPSA.FIPS.avg.colnames
+colnames(HPSA.FIPS.avg[[2]]) <- HPSA.FIPS.avg.colnames
+
+HPSA.FIPS.avg[[1]]$State.and.County.Federal.Information.Processing.Standard.Code <- as.character(HPSA.FIPS.avg[[1]]$State.and.County.Federal.Information.Processing.Standard.Code)
+HPSA.FIPS.avg[[2]]$State.and.County.Federal.Information.Processing.Standard.Code <- as.character(HPSA.FIPS.avg[[2]]$State.and.County.Federal.Information.Processing.Standard.Code)
+
+HPSA.FIPS.avg[[1]]$HPSA.Score.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[1]]$HPSA.Score.Avg))
+HPSA.FIPS.avg[[2]]$HPSA.Score.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[2]]$HPSA.Score.Avg))
+
+HPSA.FIPS.avg[[1]]$HPSA.Shortage.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[1]]$HPSA.Shortage.Avg))
+HPSA.FIPS.avg[[2]]$HPSA.Shortage.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[2]]$HPSA.Shortage.Avg))
+
+#merge with fips and avg table
+#NOTE: The final filtering out of duplicates is somewhat arbitary in which one it picks
+#this doesn't matter however, since the average has already been calculated
+HPSA.data <- Map(function(x,y) merge(x,y), HPSA.data, HPSA.FIPS.avg)
+HPSA.data <- lapply(HPSA.data, function(x) as.data.table(x)[, .SD[which.max(HPSA.Score)], by = State.and.County.Federal.Information.Processing.Standard.Code])
