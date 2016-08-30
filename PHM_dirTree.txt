@@ -1,81 +1,90 @@
-/mnt/common/work/ExpX/r
-├── CHR_CHSI_merge.R
-├── CHSI.R
-├── data
-│   ├── CHR
-│   │   ├── 2016CHR_CSV_Analytic_Data_v2.csv
-│   │   └── other
-│   │       └── 2016CountyHealthRankingsData.xls
-│   ├── CHSI
-│   │   ├── DEMOGRAPHICS.csv
-│   │   ├── LEADINGCAUSESOFDEATH.csv
-│   │   ├── MEASURESOFBIRTHANDDEATH.csv
-│   │   ├── other
-│   │   │   ├── CHSI DataSet.xls
-│   │   │   ├── chsi_dataset.zip
-│   │   │   ├── CSV File Index.txt
-│   │   │   ├── DATAELEMENTDESCRIPTION.csv
-│   │   │   ├── DEFINEDDATAVALUE.csv
-│   │   │   └── HEALTHYPEOPLE2010.csv
-│   │   ├── PREVENTIVESERVICESUSE.csv
-│   │   ├── RELATIVEHEALTHIMPORTANCE.csv
-│   │   ├── RISKFACTORSANDACCESSTOCARE.csv
-│   │   ├── SUMMARYMEASURESOFHEALTH.csv
-│   │   └── VUNERABLEPOPSANDENVHEALTH.csv
-│   ├── datasets.xlsx
-│   ├── export
-│   │   ├── CHR_data_all.csv
-│   │   ├── CHSI_CHR_data_all.csv
-│   │   ├── CHSI_data_all.csv
-│   │   └── HCAHPS_data_all.csv
-│   ├── HCAHPS
-│   │   ├── other
-│   │   │   ├── Ambulatory Surgical Measures-Facility.csv
-│   │   │   ├── Ambulatory Surgical Measures-National.csv
-│   │   │   ├── Ambulatory Surgical Measures-State.csv
-│   │   │   ├── Complications - Hospital.csv
-│   │   │   ├── Complications - National.csv
-│   │   │   ├── Complications - State.csv
-│   │   │   ├── Footnote Crosswalk.csv
-│   │   │   ├── FY2014_Distribution_of_Net_Change_in_Base_Op_DRG_Payment_Amt.csv
-│   │   │   ├── FY2014_Net_Change_in_Base_Op_DRG_Payment_Amt.csv
-│   │   │   ├── FY2014_Percent_Change_in_Medicare_Payments.csv
-│   │   │   ├── FY2014_Value_Based_Incentive_Payment_Amount.csv
-│   │   │   ├── HCAHPS - Hospital.csv
-│   │   │   ├── HCAHPS - National.csv
-│   │   │   ├── HCAHPS - State.csv
-│   │   │   ├── Healthcare Associated Infections - Hospital.csv
-│   │   │   ├── Healthcare Associated Infections - National.csv
-│   │   │   ├── Healthcare Associated Infections - State.csv
-│   │   │   ├── Hospital General Information.csv
-│   │   │   ├── Hospital.pdf
-│   │   │   ├── HOSPITAL_QUARTERLY_HAC_DOMAIN_HOSPITAL_02_26_2016.csv
-│   │   │   ├── HOSPITAL_QUARTERLY_IPFQR_MEASURES_HOSPITAL.csv
-│   │   │   ├── HOSPITAL_QUARTERLY_IPFQR_MEASURES_NATIONAL.csv
-│   │   │   ├── HOSPITAL_QUARTERLY_IPFQR_MEASURES_STATE.csv
-│   │   │   ├── HOSPITAL_QUARTERLY_QUALITYMEASURE_PCH_HOSPITAL.csv
-│   │   │   ├── Hospital_Revised_Flatfiles.zip
-│   │   │   ├── hvbp_ami_06_08_2016.csv
-│   │   │   ├── hvbp_Efficiency_06_08_2016.csv
-│   │   │   ├── hvbp_hai_06_08_2016.csv
-│   │   │   ├── hvbp_hcahps_06_08_2016.csv
-│   │   │   ├── hvbp_imm2_06_08_2016.csv
-│   │   │   ├── hvbp_outcome_06_08_2016.csv
-│   │   │   ├── hvbp_pn_06_08_2016.csv
-│   │   │   ├── hvbp_scip_06_08_2016.csv
-│   │   │   ├── hvbp_tps_06_08_2016.csv
-│   │   │   ├── Measure Dates.csv
-│   │   │   ├── Medicare Hospital Spending by Claim.csv
-│   │   │   ├── Medicare Hospital Spending per Patient - Hospital.csv
-│   │   │   ├── Medicare Hospital Spending per Patient - National.csv
-│   │   │   ├── Medicare Hospital Spending per Patient - State.csv
-│   │   │   ├── Outpatient Imaging Efficiency - Hospital.csv
-│   │   │   ├── Outpatient Imaging Efficiency - National.csv
-│   │   │   ├── Outpatient Imaging Efficiency - State.csv
-│   │   │   ├── Outpatient Procedures - Volume.csv
-│   │   │   └── Payment and Value of Care - Hospital.csv
-│   │   └── Patient_survey__HCAHPS__-_Hospital.csv
-│   └── MEPS
-└── PHM-tool_data.R
+/mnt/common/work/ExpX/
+├── notes.txt
+└── r
+    ├── data
+    │   ├── BCD_HPSA_FCT_DET_MH.csv
+    │   ├── BCD_HPSA_FCT_DET_PC.csv
+    │   ├── Census
+    │   │   └── national_county.txt
+    │   ├── CHR
+    │   │   ├── 2016CHR_CSV_Analytic_Data_v2.csv
+    │   │   └── other
+    │   │       └── 2016CountyHealthRankingsData.xls
+    │   ├── CHSI
+    │   │   ├── DEMOGRAPHICS.csv
+    │   │   ├── LEADINGCAUSESOFDEATH.csv
+    │   │   ├── MEASURESOFBIRTHANDDEATH.csv
+    │   │   ├── other
+    │   │   │   ├── CHSI DataSet.xls
+    │   │   │   ├── chsi_dataset.zip
+    │   │   │   ├── CSV File Index.txt
+    │   │   │   ├── DATAELEMENTDESCRIPTION.csv
+    │   │   │   ├── DEFINEDDATAVALUE.csv
+    │   │   │   └── HEALTHYPEOPLE2010.csv
+    │   │   ├── PREVENTIVESERVICESUSE.csv
+    │   │   ├── RELATIVEHEALTHIMPORTANCE.csv
+    │   │   ├── RISKFACTORSANDACCESSTOCARE.csv
+    │   │   ├── SUMMARYMEASURESOFHEALTH.csv
+    │   │   └── VUNERABLEPOPSANDENVHEALTH.csv
+    │   ├── datasets.xlsx
+    │   ├── export
+    │   │   ├── CHR_data_all.csv
+    │   │   ├── CHSI_CHR_data_all.csv
+    │   │   ├── CHSI_data_all.csv
+    │   │   ├── HCAHPS_data_all.csv
+    │   │   ├── missing_MH.csv
+    │   │   ├── missing_PC.csv
+    │   │   └── test.csv
+    │   ├── FINAL VARIABLES.xlsx
+    │   ├── HCAHPS
+    │   │   ├── other
+    │   │   │   ├── Ambulatory Surgical Measures-Facility.csv
+    │   │   │   ├── Ambulatory Surgical Measures-National.csv
+    │   │   │   ├── Ambulatory Surgical Measures-State.csv
+    │   │   │   ├── Complications - Hospital.csv
+    │   │   │   ├── Complications - National.csv
+    │   │   │   ├── Complications - State.csv
+    │   │   │   ├── Footnote Crosswalk.csv
+    │   │   │   ├── FY2014_Distribution_of_Net_Change_in_Base_Op_DRG_Payment_Amt.csv
+    │   │   │   ├── FY2014_Net_Change_in_Base_Op_DRG_Payment_Amt.csv
+    │   │   │   ├── FY2014_Percent_Change_in_Medicare_Payments.csv
+    │   │   │   ├── FY2014_Value_Based_Incentive_Payment_Amount.csv
+    │   │   │   ├── HCAHPS - Hospital.csv
+    │   │   │   ├── HCAHPS - National.csv
+    │   │   │   ├── HCAHPS - State.csv
+    │   │   │   ├── Healthcare Associated Infections - Hospital.csv
+    │   │   │   ├── Healthcare Associated Infections - National.csv
+    │   │   │   ├── Healthcare Associated Infections - State.csv
+    │   │   │   ├── Hospital General Information.csv
+    │   │   │   ├── Hospital.pdf
+    │   │   │   ├── HOSPITAL_QUARTERLY_HAC_DOMAIN_HOSPITAL_02_26_2016.csv
+    │   │   │   ├── HOSPITAL_QUARTERLY_IPFQR_MEASURES_HOSPITAL.csv
+    │   │   │   ├── HOSPITAL_QUARTERLY_IPFQR_MEASURES_NATIONAL.csv
+    │   │   │   ├── HOSPITAL_QUARTERLY_IPFQR_MEASURES_STATE.csv
+    │   │   │   ├── HOSPITAL_QUARTERLY_QUALITYMEASURE_PCH_HOSPITAL.csv
+    │   │   │   ├── Hospital_Revised_Flatfiles.zip
+    │   │   │   ├── hvbp_ami_06_08_2016.csv
+    │   │   │   ├── hvbp_Efficiency_06_08_2016.csv
+    │   │   │   ├── hvbp_hai_06_08_2016.csv
+    │   │   │   ├── hvbp_hcahps_06_08_2016.csv
+    │   │   │   ├── hvbp_imm2_06_08_2016.csv
+    │   │   │   ├── hvbp_outcome_06_08_2016.csv
+    │   │   │   ├── hvbp_pn_06_08_2016.csv
+    │   │   │   ├── hvbp_scip_06_08_2016.csv
+    │   │   │   ├── hvbp_tps_06_08_2016.csv
+    │   │   │   ├── Measure Dates.csv
+    │   │   │   ├── Medicare Hospital Spending by Claim.csv
+    │   │   │   ├── Medicare Hospital Spending per Patient - Hospital.csv
+    │   │   │   ├── Medicare Hospital Spending per Patient - National.csv
+    │   │   │   ├── Medicare Hospital Spending per Patient - State.csv
+    │   │   │   ├── Outpatient Imaging Efficiency - Hospital.csv
+    │   │   │   ├── Outpatient Imaging Efficiency - National.csv
+    │   │   │   ├── Outpatient Imaging Efficiency - State.csv
+    │   │   │   ├── Outpatient Procedures - Volume.csv
+    │   │   │   └── Payment and Value of Care - Hospital.csv
+    │   │   └── Patient_survey__HCAHPS__-_Hospital.csv
+    │   ├── HPSA
+    │   │   ├── BCD_HPSA_FCT_DET_MH.csv
+    │   │   └── BCD_HPSA_FCT_DET_PC.csv
 
-9 directories, 70 files
+12 directories, 83 files
