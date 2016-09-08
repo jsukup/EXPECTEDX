@@ -4,6 +4,7 @@
 ###CHR Obtained From: http://www.countyhealthrankings.org/rankings/data
 ###CHSI Obtained From: https://catalog.data.gov/dataset/community-health-status-indicators-chsi-to-combat-obesity-heart-disease-and-cancer
 ###HCAHPS OBTAINED FROM (8/1/16): https://data.medicare.gov/Hospital-Compare/Patient-survey-HCAHPS-Hospital/dgck-syfz
+###FIPS Lookup table obtained from: https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
 ###Data Obtained On: 8/16/2016
 
 ##load libraries
@@ -16,19 +17,19 @@ library(RCurl)
 library(data.table)
 
 ##directories
-#dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
-#dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
-#dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
-#dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
-#dir.data.HPSA <- '/mnt/common/work/ExpX/r/data/HPSA'
-#dir.export <- '/mnt/common/work/ExpX/r/data/export'
+dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
+dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
+dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
+dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
+dir.data.HPSA <- '/mnt/common/work/ExpX/r/data/HPSA'
+dir.export <- '/mnt/common/work/ExpX/r/data/export'
 
-dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
-dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
-dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
-dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
-dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
-dir.export <- 'D:/work/ExpX/r/data/export'
+#dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
+#dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
+#dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
+#dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
+#dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
+#dir.export <- 'D:/work/ExpX/r/data/export'
 
 ##urls
 url.broadband.pt1 <- 'http://www.broadbandmap.gov/broadbandmap/almanac/jun2014/rankby/state/'
@@ -36,10 +37,10 @@ url.broadband.pt2 <- '/population/downloadSpeedGreaterThan10000k/county?format=j
 
 ##switches
 #set to true to export .csv
-export.CHSI <- TRUE
-export.CHR <- TRUE
-export.CHSI.CSR <- TRUE
-export.HCAHPS <- TRUE
+export.CHSI <- FALSE
+export.CHR <- FALSE
+export.CHSI.CSR <- FALSE
+export.HCAHPS <- FALSE
 
 ##functions
 #for reading in data and putting into a list
@@ -60,9 +61,77 @@ exportData <- function(dir, data, fileName) {
   write.csv(data, file = fileName)
 }
 
+#for correcting case
+fixCase <- function(myCol) {
+  temp <- tolower(myCol)
+  temp <- paste0(toupper(substr(temp, 1, 1)), substr(temp, 2, nchar(temp)))
+  return(temp)
+}
+
+normalizedScore <- function(data, raw, scope, name) {
+  if(scope == "nation") {
+    temp <- aggregate(data[[raw]], by = list(data[["FIPS"]])
+                      , function(x) {
+                        if(sum(is.na(x)) == length(x))
+                          return(NA)
+                        else
+                          sum(x, na.rm = TRUE)
+                      })
+    colnames(temp) <- c("FIPS", name)
+    temp[[name]] <- ecdf(temp[[name]])(temp[[name]])
+    
+  } else if(scope == "state") {
+    temp <- lapply(unique(data[["State"]]), function(x) filter(data, State == x))  #change to a list of df by state
+    temp <- lapply(temp, function(df) aggregate(df[[raw]], by = list(df[["FIPS"]])
+                                                , function(x) {
+                                                  if(sum(is.na(x)) == length(x))
+                                                    return(NA)
+                                                  else
+                                                    sum(x, na.rm=TRUE)
+                                                }))  #compute total score by county
+    temp <- lapply(temp, function(df) cbind(df, tryCatch(ecdf(df[, 2])(df[, 2])
+                                                         , error = function(conds)
+                                                           return(rep(NA, times = length(df[, 2]))))))  #compute percentile
+    temp <- bind_rows(temp)
+    temp[, 2] <- temp[, 3]
+    temp[, 3] <- NULL
+    colnames(temp) <- c("FIPS", name)
+  }
+  return(temp)
+}
+
+##FIPS lookup table to fix stuff
+FIPS.colClasses <- "character" #to avoid factors
+FIPS.lookup <- read.csv(paste(dir.data.FIPS, "/national_county.txt", sep=""), header=FALSE, colClasses=FIPS.colClasses)
+colnames(FIPS.lookup) <- c("State", "stateFips", "County_FIPS_Code","County", "Donno")
+FIPS.lookup$County <- gsub("*\\sCounty", "", FIPS.lookup$County)
+FIPS.lookup$Donno <- NULL
+
+FIPS.lookup <- filter(FIPS.lookup, State != "AS"
+                      , State != "FM"
+                      , State != "GU"
+                      , State != "MH"
+                      , State != "MP"
+                      , State != "PW"
+                      , State != "PR"
+                      , State != "VI"
+                      , State != "UM")
+
+#add two missing counties to FIPS lookup in Alaska
+missing <- as.data.frame(list(c("AK", "AK", "AK")
+                              , c("02", "02", "02")
+                              , c("201", "232", "280")
+                              , c("Prince of Wales-Outer Ketchikan"
+                                  , "Skagway-Hoonah-Angoon"
+                                  , "Wrangell-Petersburg")))
+colnames(missing) <- colnames(FIPS.lookup)
+FIPS.lookup <- rbind(FIPS.lookup, missing)
+FIPS.lookup$FIPS <- paste(FIPS.lookup$stateFips, FIPS.lookup$County_FIPS_Code, sep="")
+rm(missing)
+
 ##CHSI DATA
 #read in data
-CHSI.data <- readData(dir.data.CHSI, c("State_FIPS_Code"="factor", "County_FIPS_Code"="factor"))
+CHSI.data <- readData(dir.data.CHSI, "character")
 
 #check for unneccesary datasets and remove
 if(length(CHSI.data) > 1)
@@ -72,24 +141,47 @@ if(length(CHSI.data) > 1)
 #NOTE: LEADINGCAUSESFODEATH is messed up a bit.  The FIPS codes were converted to ints
 #when the govt DBA dumpted the data.
 CHSI.data$LEADINGCAUSESOFDEATH[1:2] <- list(NULL) #remove FIPS columns.
-CHSI.data$LEADINGCAUSESOFDEATH <- merge(CHSI.data$LEADINGCAUSESOFDEATH, CHSI.data$DEMOGRAPHICS[1:4]) #add back in FIPS
+CHSI.data$LEADINGCAUSESOFDEATH <- merge(CHSI.data$DEMOGRAPHICS[1:4], CHSI.data$LEADINGCAUSESOFDEATH) #add back in FIPS
 CHSI.data.all <- Reduce(merge, CHSI.data)
+
+##keep only needed rows
+CHSI.data.all <- select(CHSI.data.all
+                        , State_FIPS_Code, County_FIPS_Code, CHSI_County_Name
+                        , CHSI_State_Name, CHSI_State_Abbr
+                        , B_Wh_Cancer, B_Bl_Cancer, B_Ot_Cancer, B_Hi_Cancer
+                        , C_Wh_Cancer, C_Bl_Cancer, C_Ot_Cancer, C_Hi_Cancer
+                        , D_Wh_Cancer, D_Bl_Cancer, D_Ot_Cancer, D_Hi_Cancer
+                        , D_Wh_HeartDis, D_Bl_HeartDis, D_Ot_HeartDis, D_Hi_HeartDis
+                        , E_Wh_Cancer, E_Bl_Cancer, E_Ot_Cancer, E_Hi_Cancer
+                        , E_Wh_HeartDis, E_Bl_HeartDis, E_Ot_HeartDis, E_Hi_HeartDis
+                        , F_Wh_HeartDis, F_Bl_HeartDis, F_Ot_HeartDis, F_Hi_HeartDis
+                        , F_Wh_Cancer, F_Bl_Cancer, F_Ot_Cancer, F_Hi_Cancer
+                        , County_FIPS_Code, CHSI_State_Abbr
+                        , B_Wh_Homicide, B_Bl_Homicide, B_Ot_Homicide, B_Hi_Homicide
+                        , C_Wh_Injury, C_Bl_Injury, C_Ot_Injury, C_Hi_Injury
+)
 
 ##recode CHSI data
 CHSI.replaceData <- c(-9999, -2222, -2222.2, -2, -1111.1, -1111, -1)
-CHSI.data.all <- as.data.frame(lapply(CHSI.data.all, Recode, "CHSI.replaceData=NA"))
+CHSI.data.all <- cbind(CHSI.data.all[1:5]
+                       , lapply(CHSI.data.all[6:ncol(CHSI.data.all)], Recode, "CHSI.replaceData=NA"))
+#compute sums
+temp <- CHSI.data.all[, 6:45]
 
-##keep only needed rows
-CHSI.data.all <- select(CHSI.data.all, State_FIPS_Code, County_FIPS_Code
-                        , A_Wh_Comp, A_Bl_Comp, A_Ot_Comp, A_Hi_Comp, B_Wh_Cancer
-                        , B_Bl_Cancer, B_Ot_Cancer, B_Hi_Cancer, C_Wh_Suicide, C_Bl_Suicide
-                        , C_Ot_Suicide, C_Hi_Suicide, C_Wh_Cancer, C_Bl_Cancer, C_Ot_Cancer
-                        , C_Hi_Cancer, D_Wh_Cancer, D_Bl_Cancer, D_Ot_Cancer, D_Hi_Cancer
-                        , D_Wh_HeartDis, D_Bl_HeartDis, D_Ot_HeartDis, D_Hi_HeartDis, D_Wh_Suicide
-                        , D_Bl_Suicide, D_Ot_Suicide, D_Hi_Suicide, E_Wh_Cancer, E_Bl_Cancer
-                        , E_Ot_Cancer, E_Hi_Cancer, E_Wh_HeartDis, E_Bl_HeartDis, E_Ot_HeartDis
-                        , E_Hi_HeartDis, F_Wh_HeartDis, F_Bl_HeartDis, F_Ot_HeartDis, F_Hi_HeartDis
-                        , F_Wh_Cancer, F_Bl_Cancer, F_Ot_Cancer, F_Hi_Cancer)
+temp <- as.data.frame(t(apply(temp, 1, function(r)
+  sapply(seq(from = 1, to = 37, by = 4), function(n)
+    if(sum(is.na(r[n:(n+3)])) == length(temp[, n:(n+3)]))
+      return(NA)
+    else
+      return(sum(r[n:(n+3)], na.rm = TRUE))
+    ))))
+
+colnames(temp) <- c("Cancer.B", "Cancer.C", "Cancer.D"
+                    , "HeartDis.D", "Cancer.E", "HeartDis.E"
+                    , "HeartDis.F", "Cancer.F", "Homicide.B"
+                    , "Injury.C")
+CHSI.data.all <- cbind(CHSI.data.all[1:5], temp)
+rm(temp)
 
 #export to .csv
 if(export.CHSI)
@@ -97,7 +189,7 @@ if(export.CHSI)
 
 ##CHR DATA
 #read in data
-CHR.data <- readData(dir.data.CHR, c("STATECODE"="factor", "COUNTYCODE"="factor"))
+CHR.data <- readData(dir.data.CHR, "character")
 
 #check for unneccesary datasets and remove
 if(length(CHR.data) > 1)
@@ -113,37 +205,11 @@ CHR.data.all <- Reduce(merge, CHR.data)
 
 ##keep only needed rows
 CHR.data.all <- select(CHR.data.all, State_FIPS_Code, County_FIPS_Code
-                       , Premature.death.Value
                        , Poor.or.fair.health.Value
-                       , Poor.physical.health.days.Value
-                       , Poor.mental.health.days.Value
-                       , Low.birthweight.Value
-                       , Adult.smoking.Value
-                       , Adult.obesity.Value
-                       , Food.environment.index.Value
-                       , Physical.inactivity.Value
-                       , Access.to.exercise.opportunities.Value
-                       , Excessive.drinking.Value
-                       , Alcohol.impaired.driving.deaths.Value
-                       , Sexually.transmitted.infections.Value
-                       , Teen.births.Value
-                       , Primary.care.physicians.Value
-                       , Mental.health.providers.Value
-                       , Preventable.hospital.stays.Value
                        , Population.estimate.Value
-                       , Percent.of.population.below.18.years.of.age
-                       , Percent.of.population.aged.65.years.and.older
-                       , Percent.of.population.that.is.non.Hispanic.African.American
-                       , Percent.of.population.that.is.American.Indian.or.Alaskan.Native
-                       , Percent.of.population.that.is.Asian
-                       , Percent.of.population.that.is.Native.Hawaiian.or.Other.Pacific.Islander
-                       , Percent.of.population.that.is.Hispanic
-                       , Percent.of.population.that.is.non.Hispanic.White
-                       , Population.that.is.not.proficient.in.English.Value
-                       , Percent.of.population.that.is.female
-                       , Population.living.in.a.rural.area.Value
-                       , Diabetes.Value
-                       , Other.primary.care.providers.Value)
+                       , Diabetes.Value)
+
+colnames(CHR.data.all) <- c("State_FIPS_Code", "County_FIPS_Code", "Poor.Health", "Population", "Diabetes")
 ##export to .csv
 if(export.CHR)
   exportData(dir.export, CHR.data.all, "CHR_data_all.csv")
@@ -155,70 +221,119 @@ CHSI.CHR.data.all <- merge(CHSI.data.all, CHR.data.all)
 if(export.CHSI.CSR)
   exportData(dir.export, CHSI.CHR.data.all, "CHSI_CHR_data_all.csv")
 
+##Compute Scores on CHSI and CHR data
+CHSI.CHR.data.all$FIPS <- paste0(CHSI.CHR.data.all$State_FIPS_Code, CHSI.CHR.data.all$County_FIPS_Code)
+CHSI.CHR.data.all <- select(CHSI.CHR.data.all, -State_FIPS_Code, -County_FIPS_Code, CHSI_County_Name
+                            , -CHSI_State_Name, -CHSI_State_Abbr, -CHSI_County_Name)
+CHSI.CHR.data.all <- cbind(CHSI.CHR.data.all[14], CHSI.CHR.data.all[12], CHSI.CHR.data.all[1:11], CHSI.CHR.data.all[13])
+CHSI.CHR.data.all <- transform(CHSI.CHR.data.all, Population = as.numeric(gsub(',', '', Population))
+                               , Poor.Health = as.numeric(Poor.Health)
+                               , Diabetes = as.numeric(Diabetes))
+
+#national percentile
+CHSI.CHR.data.national <- lapply(colnames(CHSI.CHR.data.all[3:14]), function(n)
+  normalizedScore(CHSI.CHR.data.all, n, "nation", n))
+CHSI.CHR.data.national <- Reduce(merge, CHSI.CHR.data.national)
+CHSI.CHR.data.national <- merge(select(FIPS.lookup, FIPS, State, County)
+                                , CHSI.CHR.data.national, by = "FIPS", all = TRUE)
+
+#state percentile
+temp <- merge(select(FIPS.lookup, FIPS, State), CHSI.CHR.data.all, by = "FIPS")
+CHSI.CHR.data.state <- lapply(colnames(CHSI.CHR.data.all[3:14]), function(n)
+  normalizedScore(temp, n, "state", n))
+CHSI.CHR.data.state <- Reduce(merge, CHSI.CHR.data.state)
+CHSI.CHR.data.state <- merge(select(FIPS.lookup, FIPS, State, County)
+                                , CHSI.CHR.data.state, by = "FIPS", all = TRUE)
+rm(temp)
+
 ##HCAHPS DATA
 #read in data
-HCAHPS.data <- readData(dir.data.HCAHPS)
+HCAHPS.data <- readData(dir.data.HCAHPS, "character")
 
-##filter out unneeded rows
-HCAHPS.data$`Patient_survey__HCAHPS__-_Hospital` <- filter(HCAHPS.data$`Patient_survey__HCAHPS__-_Hospital`
-                                                           , HCAHPS.Measure.ID == 'H_COMP_1_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_COMP_2_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_COMP_3_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_COMP_5_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_COMP_6_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_COMP_7_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_HSP_RATING_LINEAR_SCORE'
-                                                           | HCAHPS.Measure.ID == 'H_RECMND_LINEAR_SCORE')
+#remove uneeded rows.  This will speed up the grouping process
+HCAHPS.data$`Readmissions_and_Deaths_-_Hospital` <- select(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`
+                                                           , Provider.ID, Hospital.Name, State, County.Name, ZIP.Code
+                                                           , Measure.Name, Measure.ID, Score)
+HCAHPS.data$`Readmissions_and_Deaths_-_Hospital` <- filter(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`,
+                                                           Measure.ID == "READM_30_HOSP_WIDE")
 
-##merge CHR data (made to be expandable)
-HCAHPS.data.all <- Reduce(merge, HCAHPS.data)
-
-HCAHPS.data.all$latlong <- str_extract(HCAHPS.data.all$Location,'\\(\\d*\\.\\d*\\, ?-\\d*\\.\\d*\\)') #Extract latitude/longitude between parenthesis
-HCAHPS.data.all$latlong <- gsub('\\(','',HCAHPS.data.all$latlong) #Remove leading parenthesis
-HCAHPS.data.all$latlong <- gsub('\\)','',HCAHPS.data.all$latlong) #Remove trailing parenthesis
-
-split <- strsplit(as.character(HCAHPS.data.all$latlong), ",", fixed = TRUE) #Split by comma
-
-HCAHPS.data.all$latitude <- sapply(split, '[', 1) #Extract latitude
-HCAHPS.data.all$longitude <- sapply(split, '[', 2) #Extract longitude
-
-HCAHPS.data.all <- filter(HCAHPS.data.all, State != 'PR', State != 'GU', State != 'MP', State != 'VI') #Remove territories 
-
-nolatlong <- filter(HCAHPS.data.all, is.na(latlong)) #Extract hospital addresses with no coordinates
-nolatlong <- select(nolatlong, Provider.ID, Location) #Select address variable
-nolatlong[,2] <- gsub(',', '', nolatlong[,2]) #Remove commas
-nolatlong[,2] <- gsub('#', '', nolatlong[,2]) #Remove number sign
-nolatlong <- cbind(unique(nolatlong)[,1], geocode(unique(nolatlong[,2]))) #Geocode addresses with latitude/longitude
-names(nolatlong) <- c('Provider.ID','longitude','latitude') #Match names to HCAHPS.data.all data frame
-
-HCAHPS.data.all <- merge(HCAHPS.data.all, nolatlong, by = 'Provider.ID', all = TRUE) #Merge geocoded addresses with original
-
-HCAHPS.data.all$latitude.x <- ifelse(is.na(HCAHPS.data.all$latitude.x), HCAHPS.data.all$latitude.y, HCAHPS.data.all$latitude.x)
-HCAHPS.data.all$longitude.x <- ifelse(is.na(HCAHPS.data.all$longitude.x), HCAHPS.data.all$longitude.y, HCAHPS.data.all$longitude.x)
+HCAHPS.data$`Structural_Measures_-_Hospital` <- select(HCAHPS.data$`Structural_Measures_-_Hospital`
+                                                       , Provider.ID, Hospital.Name, State, County.Name, ZIP.Code
+                                                       , Measure.Name, Measure.ID, Measure.Response)
+HCAHPS.data$`Structural_Measures_-_Hospital` <- filter(HCAHPS.data$`Structural_Measures_-_Hospital`
+                                                       , Measure.ID == "OP_12" | Measure.ID == "OP_17")
 
 ##clean up data
-HCAHPS.data.all <- as.data.frame(lapply(HCAHPS.data.all, Recode, "'Not Applicable'=NA; ''=NA"))  #replace with NA
-HCAHPS.data.all$longitude.y <- NULL  #drop extra lat/lon columns
-HCAHPS.data.all$latitude.y <- NULL
+#HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County.Name <- fixCase(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County.Name)
+#HCAHPS.data$`Structural_Measures_-_Hospital`$County.Name <- fixCase(HCAHPS.data$`Structural_Measures_-_Hospital`$County.Name)
 
-##Code below here will process everything into a "nice" form.
-HCAHPS.hospitals <- unique(HCAHPS.data.all$Provider.ID) #Extract provider ID list
-HCAHPS.subCols <- c("Provider.ID", "HCAHPS.Measure.ID", "HCAHPS.Question", "HCAHPS.Answer.Description"
-             , "Patient.Survey.Star.Rating", "Patient.Survey.Star.Rating.Footnote"
-             , "HCAHPS.Answer.Percent", "HCAHPS.Answer.Percent.Footnote", "HCAHPS.Linear.Mean.Value") #List of columns for subdata
-HCAHPS.subData <- HCAHPS.data.all[HCAHPS.subCols] #select only subset of data as defined above
+HCAHPS.data$`Structural_Measures_-_Hospital`$Measure.Response <- Recode(HCAHPS.data$`Structural_Measures_-_Hospital`$Measure.Response
+,"'Not Available'=NA; ''=NA; 'Yes'='1'; 'No'='0'")  #replace with NA
 
-HCAHPS.subData <- lapply(HCAHPS.hospitals, function(x) filter(HCAHPS.subData, Provider.ID == x)) #create a list of df grouped by prov.id
-HCAHPS.subData <- bind_rows(lapply(HCAHPS.subData, function(x) as.data.frame(t(apply(x, 2, paste, collapse=";"))))) #concatenate cols into one row
-HCAHPS.subData$Provider.ID <- gsub('.*;', '', HCAHPS.subData$Provider.ID) #fix provider ID names
+HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$Score <- Recode(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$Score
+                                                                        ,"'Not Available'=NA")  #replace with NA
 
-HCAHPS.data.all <- filter(HCAHPS.data.all, HCAHPS.Measure.ID ==  "H_COMP_1_LINEAR_SCORE") #select only one row for each provider ID
-HCAHPS.data.all <- select(HCAHPS.data.all, -HCAHPS.Measure.ID, -HCAHPS.Question, -HCAHPS.Answer.Description #drop cols to be replaced
-                          , -Patient.Survey.Star.Rating, -Patient.Survey.Star.Rating.Footnote
-                          , -HCAHPS.Answer.Percent, -HCAHPS.Answer.Percent.Footnote, -HCAHPS.Linear.Mean.Value)
+colnames(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`)[4] <- "County"
+colnames(HCAHPS.data$`Structural_Measures_-_Hospital`)[4] <- "County"
+
+#attach FIPS columns
+FIPS.lookup.HCAHPS <- FIPS.lookup
+FIPS.lookup.HCAHPS$County <- toupper(FIPS.lookup.HCAHPS$County)
+
+#Fix messed up County data
+HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County <- gsub('SAINT','ST.'
+                                                                , HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County)
+HCAHPS.data$`Structural_Measures_-_Hospital`$County <- gsub('SAINT','ST.'
+                                                            , HCAHPS.data$`Structural_Measures_-_Hospital`$County)
+
+HCAHPS.fix.bad <- c("'ST JOSEPH", "LA PORTE", "DE WITT", "LA SALLE", "DE KALB", "DE SOTO")
+HCAHPS.fix.good <- c("ST. JOSEPH", "LAPORTE", "DEWITT", "LASALLE", "DEKALB", "DESOTO'")
+HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County <- Recode(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County
+                                                                  , paste(HCAHPS.fix.bad, HCAHPS.fix.good, sep = "'='", collapse = "';'"))
+HCAHPS.data$`Structural_Measures_-_Hospital`$County <- Recode(HCAHPS.data$`Structural_Measures_-_Hospital`$County
+                                                                  , paste(HCAHPS.fix.bad, HCAHPS.fix.good, sep = "'='", collapse = "';'"))
+
+FIPS.lookup.HCAHPS$County <- gsub("'", "", FIPS.lookup.HCAHPS$County)
+FIPS.lookup.HCAHPS$County <- gsub("\\sPARISH", "", FIPS.lookup.HCAHPS$County)
+
+FIPS.fix.bad <- c("'ANCHORAGE MUNICIPALITY", "MATANUSKA-SUSITNA BOROUGH", "JUNEAU CITY AND BOROUGH"
+                  , "FAIRBANKS NORTH STAR BOROUGH", "KODIAK ISLAND BOROUGH", "SITKA CITY AND BOROUGH"
+                  , "KETCHIKAN GATEWAY BOROUGH", "SALEM CITY", "LA SALLE", "DE WITT", "DE SOTO"
+                  , "STE. GENEVIEVE", "BETHEL CENSUS AREA", "DILLINGHAM CENSUS AREA")
+FIPS.fix.good <- c("ANCHORAGE", "MATANUSKA SUSITNA", "JUNEAU", "FAIRBANKS NORTH STAR", "KODIAK ISLAND"
+                   , "SITKA", "KETCHIKAN GATEWAY", "SALEM", "LASALLE", "DEWITT", "DESOTO", "ST.E GENEVIEVE"
+                   , "BETHEL", "DILLINGHAM'")
+FIPS.lookup.HCAHPS$County <- Recode(FIPS.lookup.HCAHPS$County
+                                    , paste(FIPS.fix.bad, FIPS.fix.good, sep = "'='", collapse = "';'"))
 
 
-HCAHPS.data.all <- merge(HCAHPS.data.all, HCAHPS.subData) #replace cols
+HCAHPS.data$`Structural_Measures_-_Hospital`$County[HCAHPS.data$`Structural_Measures_-_Hospital`$Provider.ID=="020024"] <- "KENAI PENINSULA BOROUGH"
+HCAHPS.data$`Structural_Measures_-_Hospital`$County[HCAHPS.data$`Structural_Measures_-_Hospital`$Provider.ID=="021313"] <- "KENAI PENINSULA BOROUGH"
+
+HCAHPS.fix.index <- c("021301", "021304", "021307", "020024", "021312", "021302", "021305", "021313", "021308", "430081")
+HCAHPS.fix.index <- unlist(lapply(HCAHPS.fix.index, function(x) which(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$Provider.ID == x)))
+HCAHPS.fix.good <- c("VALDEZ-CORDOVA CENSUS AREA", "PETERSBURG CENSUS AREA", "VALDEZ-CORDOVA CENSUS AREA", "KENAI PENINSULA BOROUGH"
+                     , "NORTH SLOPE BOROUGH", "KENAI PENINSULA BOROUGH", "WRANGELL CITY AND BOROUGH", "KENAI PENINSULA BOROUGH"
+                     , "NOME CENSUS AREA", "BENNETT")
+HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County <- replace(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`$County, HCAHPS.fix.index, HCAHPS.fix.good)
+HCAHPS.data <- lapply(HCAHPS.data, function(df) merge(FIPS.lookup.HCAHPS, df, by = c("State", "County")))
+
+#compute stats to be used
+#By National percentile
+HCAHPS.data.national <- normalizedScore(HCAHPS.data$`Structural_Measures_-_Hospital`, "Measure.Response", "nation", "Structural.Score")
+HCAHPS.data.national <- merge(select(FIPS.lookup, FIPS, State, County), HCAHPS.data.national, by = "FIPS", all = TRUE)
+HCAHPS.data.national <- merge(HCAHPS.data.national
+                              , normalizedScore(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`
+                                                , "Score", "nation", "RaD.Score")
+                              , by = "FIPS", all = TRUE)
+
+#By State percentile
+HCAHPS.data.state <- normalizedScore(HCAHPS.data$`Structural_Measures_-_Hospital`, "Measure.Response", "state", "Structural.Score")
+HCAHPS.data.state <- merge(select(FIPS.lookup, FIPS, State, County), HCAHPS.data.state, by = "FIPS", all = TRUE)
+HCAHPS.data.state <- merge(HCAHPS.data.state
+                              , normalizedScore(HCAHPS.data$`Readmissions_and_Deaths_-_Hospital`
+                                                , "Score", "state", "RaD.Score")
+                              , by = "FIPS", all = TRUE)
 
 if(export.HCAHPS)
   exportData(dir.export, HCAHPS.data.all, "HCAHPS_data_all.csv")
@@ -231,27 +346,18 @@ BB.data.all <- lapply(BB.data, fromJSON)  #put into list
 BB.data.all <- lapply(BB.data.all, function(x) Reduce(rbind, x[4]))  #extract dfs
 BB.data.all <- bind_rows(Reduce(rbind, BB.data.all))  #row bind dfs
 
-FIPS.colClasses <- c("character", "character", "character", "character", "character")  #to avoid factors
-FIPS.lookup <- read.csv(paste(dir.data.FIPS, "/national_county.txt", sep=""), header=FALSE, colClasses=FIPS.colClasses)
-colnames(FIPS.lookup) <- c("State", "stateFips", "County_FIPS_Code","geographyName", "Donno")
-FIPS.lookup$geographyName <- gsub("*\\sCounty", "", FIPS.lookup$geographyName)
-FIPS.lookup$Donno <- NULL
+BB.data.all <- select(BB.data.all, geographyId, downloadSpeedGreaterThan10000k)
+colnames(BB.data.all) <- c("FIPS", "BroadBand.Score")
 
-FIPS.lookup <- filter(FIPS.lookup, State != "AS"
-                      , State != "FM"
-                      , State != "GU"
-                      , State != "MH"
-                      , State != "MP"
-                      , State != "PW"
-                      , State != "PR"
-                      , State != "VI"
-                      , State != "UM")
+BB.data.all <- merge(select(FIPS.lookup, FIPS, State, County), BB.data.all, by = "FIPS", all = TRUE)
 
+#By national percentile
+BB.data.national <- normalizedScore(BB.data.all, "BroadBand.Score", "nation", "BroadBand.Score")
+BB.data.national <- merge(select(FIPS.lookup, FIPS, State, County), BB.data.national, by = "FIPS", all = TRUE)
 
-US.state <- unique(FIPS.lookup$State)
-FIPS.lookup$FIPS <- paste(FIPS.lookup$stateFips, FIPS.lookup$County_FIPS_Code, sep="")
-
-BB.data.all <- merge(FIPS.lookup, BB.data.all)
+#By state percentile
+BB.data.state <- normalizedScore(BB.data.all, "BroadBand.Score", "state", "BroadBand.Score")
+BB.data.state <- merge(select(FIPS.lookup, FIPS, State, County), BB.data.state, by = "FIPS", all = TRUE)
 
 ##HPSA DATA
 HPSA.data <- readData(dir.data.HPSA, "character")
@@ -267,34 +373,66 @@ HPSA.data <- lapply(HPSA.data, filter
                     , HPSA.State.Abbreviation != "PR"
                     , HPSA.State.Abbreviation != "VI"
                     , HPSA.State.Abbreviation != "UM")  #filter out unneeded states
-
+HPSA.data <- lapply(HPSA.data, select, State.and.County.Federal.Information.Processing.Standard.Code, HPSA.Source.Name, HPSA.Score, HPSA.Shortage)
+HPSA.data <- lapply(HPSA.data, setNames, c("FIPS", "HPSA.Source.Name", "HPSA.Score", "HPSA.Shortage"))
 
 #extract list of unique FIPS and calculate average
-HPSA.FIPS <- lapply(HPSA.data, function(x) unique(x$State.and.County.Federal.Information.Processing.Standard.Code))
+HPSA.FIPS <- lapply(HPSA.data, function(x) unique(x$FIPS))
 
-HPSA.FIPS.avg <- Map(function(x,y) lapply(x, function(z) filter(y, State.and.County.Federal.Information.Processing.Standard.Code==z)), HPSA.FIPS, HPSA.data)  #create dataframe of dataframes grouped by FIPS
-HPSA.FIPS.avg <- lapply(HPSA.FIPS.avg, function(x) lapply(x, function(y) cbind(y$State.and.County.Federal.Information.Processing.Standard.Code[1]
+HPSA.data <- Map(function(x,y) lapply(x, function(z) filter(y, FIPS == z)), HPSA.FIPS, HPSA.data)  #create dataframe of dataframes grouped by FIPS
+HPSA.data <- lapply(HPSA.data, function(x) lapply(x, function(y) cbind(y$FIPS[1]
                                                                                , mean(as.numeric(as.data.table(y)[, .SD[which.max(HPSA.Score)], by = HPSA.Source.Name]$HPSA.Score))
                                                                                , mean(as.numeric(as.data.table(y)[, .SD[which.max(HPSA.Shortage)], by = HPSA.Source.Name]$HPSA.Shortage)))))  #compute average
-HPSA.FIPS.avg <- lapply(HPSA.FIPS.avg, function(...) do.call(rbind.data.frame, ...))  #merge together
+HPSA.data <- lapply(HPSA.data, function(...) do.call(rbind.data.frame, ...))  #merge together
 
 #fix cols
 #TODO: cleanup
-HPSA.FIPS.avg.colnames <- c("State.and.County.Federal.Information.Processing.Standard.Code", "HPSA.Score.Avg", "HPSA.Shortage.Avg")
-colnames(HPSA.FIPS.avg[[1]]) <- HPSA.FIPS.avg.colnames
-colnames(HPSA.FIPS.avg[[2]]) <- HPSA.FIPS.avg.colnames
+HPSA.data <- lapply(HPSA.data, setNames, c("FIPS", "HPSA.Score", "HPSA.Shortage"))
+HPSA.data <- lapply(HPSA.data, function(df) transform(df
+                                                      , FIPS = as.character(FIPS)
+                                                      , HPSA.Score = as.numeric(as.character(HPSA.Score))
+                                                      , HPSA.Shortage = as.numeric(as.character(HPSA.Shortage))))
 
-HPSA.FIPS.avg[[1]]$State.and.County.Federal.Information.Processing.Standard.Code <- as.character(HPSA.FIPS.avg[[1]]$State.and.County.Federal.Information.Processing.Standard.Code)
-HPSA.FIPS.avg[[2]]$State.and.County.Federal.Information.Processing.Standard.Code <- as.character(HPSA.FIPS.avg[[2]]$State.and.County.Federal.Information.Processing.Standard.Code)
+#merge with FIPS lookup
+HPSA.data <- lapply(HPSA.data, function(df) merge(select(FIPS.lookup, FIPS, State, County), df, by = "FIPS", all = TRUE))
 
-HPSA.FIPS.avg[[1]]$HPSA.Score.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[1]]$HPSA.Score.Avg))
-HPSA.FIPS.avg[[2]]$HPSA.Score.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[2]]$HPSA.Score.Avg))
+#By national percentile ONLY USING PHYSICIANS
+HPSA.data.national <- normalizedScore(HPSA.data$BCD_HPSA_FCT_DET_PC, "HPSA.Score", "nation", "PhysicianShortage.Score")
+HPSA.data.national <- merge(select(FIPS.lookup, FIPS, State, County), HPSA.data.national, by = "FIPS", all = TRUE)
 
-HPSA.FIPS.avg[[1]]$HPSA.Shortage.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[1]]$HPSA.Shortage.Avg))
-HPSA.FIPS.avg[[2]]$HPSA.Shortage.Avg <- as.numeric(as.character(HPSA.FIPS.avg[[2]]$HPSA.Shortage.Avg))
+#Bt state percentile ONLY USING PHYSICIANS
+HPSA.data.state <- normalizedScore(HPSA.data$BCD_HPSA_FCT_DET_PC, "HPSA.Score", "state", "PhysicianShortage.Score")
+HPSA.data.state <- merge(select(FIPS.lookup, FIPS, State, County), HPSA.data.state, by = "FIPS", all = TRUE)
 
-#merge with fips and avg table
-#NOTE: The final filtering out of duplicates is somewhat arbitary in which one it picks
-#this doesn't matter however, since the average has already been calculated
-HPSA.data <- Map(function(x,y) merge(x,y), HPSA.data, HPSA.FIPS.avg)
-HPSA.data <- lapply(HPSA.data, function(x) as.data.table(x)[, .SD[which.max(HPSA.Score)], by = State.and.County.Federal.Information.Processing.Standard.Code])
+##MERGE ALL NATIONAL AND STATE TABLES
+#TODO: Put national and state tables into a list beforehand
+national.all <- merge(CHSI.CHR.data.national, HPSA.data.national)
+national.all <- merge(national.all, BB.data.national)
+national.all <- merge(national.all, HCAHPS.data.national)
+
+state.all <- merge(CHSI.CHR.data.state, HPSA.data.state)
+state.all <- merge(state.all, BB.data.state)
+state.all <- merge(state.all, HCAHPS.data.state)
+
+##COMPUTER TELEHEALTH IMPACT SCORE
+national.all <- cbind(national.all, apply(national.all[4:19], 1, function(r)
+  if(sum(is.na(r)) == length(r))
+    return(NA)
+  else
+    return(sum(r, na.rm = TRUE))))
+colnames(national.all)[20] <- "Telehealth.Score"
+
+state.all <- cbind(state.all, apply(state.all[4:19], 1, function(r)
+  if(sum(is.na(r)) == length(r))
+    return(NA)
+  else
+    return(sum(r, na.rm = TRUE))))
+colnames(state.all)[20] <- "Telehealth.Score"
+
+national.all$Telehealth.Score.Pct <- national.all$Telehealth.Score/16
+state.all$Telehealth.Score.Pct <- state.all$Telehealth.Score/16
+
+#export data
+setwd(dir.export)
+write.csv(national.all, "telehealth-score_national.csv", row.names = FALSE)
+write.csv(state.all, "telehealth-score_state.csv", row.names = FALSE)
