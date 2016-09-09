@@ -17,19 +17,19 @@ library(RCurl)
 library(data.table)
 
 ##directories
-dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
-dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
-dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
-dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
-dir.data.HPSA <- '/mnt/common/work/ExpX/r/data/HPSA'
-dir.export <- '/mnt/common/work/ExpX/r/data/export'
+#dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
+#dir.data.CHR <- '/mnt/common/work/ExpX/r/data/CHR'
+#dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
+#dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
+#dir.data.HPSA <- '/mnt/common/work/ExpX/r/data/HPSA'
+#dir.export <- '/mnt/common/work/ExpX/r/data/export'
 
-#dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
-#dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
-#dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
-#dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
-#dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
-#dir.export <- 'D:/work/ExpX/r/data/export'
+dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
+dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
+dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
+dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
+dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
+dir.export <- 'D:/work/ExpX/r/data/export'
 
 ##urls
 url.broadband.pt1 <- 'http://www.broadbandmap.gov/broadbandmap/almanac/jun2014/rankby/state/'
@@ -79,7 +79,7 @@ normalizedScore <- function(data, raw, scope, name) {
                       })
     colnames(temp) <- c("FIPS", name)
     temp[[name]] <- ecdf(temp[[name]])(temp[[name]])
-    
+
   } else if(scope == "state") {
     temp <- lapply(unique(data[["State"]]), function(x) filter(data, State == x))  #change to a list of df by state
     temp <- lapply(temp, function(df) aggregate(df[[raw]], by = list(df[["FIPS"]])
@@ -420,17 +420,43 @@ national.all <- cbind(national.all, apply(national.all[4:19], 1, function(r)
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(national.all)[20] <- "Telehealth.Score"
+colnames(national.all)[20] <- "Telehealth.Score.Raw"
 
 state.all <- cbind(state.all, apply(state.all[4:19], 1, function(r)
   if(sum(is.na(r)) == length(r))
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(state.all)[20] <- "Telehealth.Score"
+colnames(state.all)[20] <- "Telehealth.Score.Raw"
 
-national.all$Telehealth.Score.Pct <- national.all$Telehealth.Score/16
-state.all$Telehealth.Score.Pct <- state.all$Telehealth.Score/16
+temp <- normalizedScore(national.all, "Telehealth.Score.Raw", "nation", "Telehealth.Score.Final")
+colnames(temp)[1] <- "FIPS"
+national.all <- merge(national.all, temp, by = "FIPS")
+
+temp <- normalizedScore(state.all, "Telehealth.Score.Raw", "state", "Telehealth.Score.Final")
+colnames(temp)[1] <- "FIPS"
+state.all <- merge(state.all, temp, by = "FIPS")
+
+rm(temp)
+
+#compute CHSI score and adjust units
+national.all <- cbind(national.all, apply(national.all[4:13], 1, function(r)
+  if(sum(is.na(r)) == length(r))
+    return(NA)
+  else
+    return(sum(r, na.rm = TRUE))))
+colnames(national.all)[22] <- "CHSI.Score"
+national.all <- cbind(national.all[1:3], national.all[4:22]*10)
+national.all$Telehealth.Score.Final <- national.all$Telehealth.Score.Final*10
+
+state.all <- cbind(state.all, apply(state.all[4:13], 1, function(r)
+  if(sum(is.na(r)) == length(r))
+    return(NA)
+  else
+    return(sum(r, na.rm = TRUE))))
+colnames(state.all)[22] <- "CHSI.Score"
+state.all <- cbind(state.all[1:3], state.all[4:22]*10)
+state.all$Telehealth.Score.Final <- state.all$Telehealth.Score.Final*10
 
 #export data
 setwd(dir.export)
