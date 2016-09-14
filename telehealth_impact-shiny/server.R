@@ -24,7 +24,7 @@ shinyServer(function(input, output, session) {
 
 # Read US in map data
   us <- readOGR("data/us.geojson", "OGRGeoJSON")
-  us <- us[!us$STATEFP %in% c("02", "15", "72"),]
+  us <- us[!us$STATEFP %in% c("72"),]
   us_aea <- spTransform(us, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
   map <- ggplot2::fortify(us_aea, region="GEOID")
 
@@ -37,11 +37,15 @@ shinyServer(function(input, output, session) {
   names(data.all) <- gsub("\\.csv$", "", files)
   
   data.names <- colnames(data.all$National)
-  data.names[1] <- "id"
-  data.names[23] <- "Score"
+  data.names <- c("id", data.names[2:13], "Poor Heath", "Diabetes", "Physician"
+                  , "Broadband", "Structural", "RaD", data.names[20:21]
+                  , "Telehealth Score Raw", "Score", "CHSI Score")
+  
+  #data.names[1] <- "id"
+  #data.names[23] <- "Score"
   data.all <- lapply(data.all, setNames, data.names)
   
-  map_d <- lapply(data.all, function(df) merge(map, df, all.x = TRUE))
+  map_d <- lapply(data.all, function(df) merge(map, select(df, id, State, Score), all.x = TRUE))
 
   ramp <- colorRampPalette(c("white", brewer.pal(n=9, name="Purples")), space="Lab")
 
@@ -54,13 +58,28 @@ shinyServer(function(input, output, session) {
   map_d <- lapply(map_d, function(df) select(df, -fill_col))
   map_d <- lapply(map_d, setNames, map_d.names)
   
-  display.map <- reactive(map_d[[input$level]])
   display.data <- reactive(data.all[[input$level]])
+  
+  display.map <- reactive({
+    if(input$view == "all")
+      display.map = filter(map_d[[input$level]], State != 'AK', State != 'HI')
+    else
+        display.map = filter(map_d[[input$level]], State == input$view)
+    return(display.map)
+  })
+  
+  tooltip.data <- reactive({
+    if(input$view == "all") 
+      tooltip.data <- c(2, 3, 23)
+    else
+      tooltip.data <- c(3, 14:19, 24, 20, 23)
+    return(tooltip.data)
+  })
   
   #FIXME: broken tooltips
   tooltips <- function(x) {
     if(is.null(x) | !(x$id %in% display.data()$id)) return(NULL)
-    y <- display.data() %>% filter(id==x$id) %>% select(2, 3, 23)
+    y <- display.data() %>% filter(id==x$id) %>% select(tooltip.data())
     sprintf("<table width='100%%'>%s</table>",
             paste0("<tr><td style='text-align:left'>", names(y),
                   ":</td><td style='text-align:right'>", format(y), collapse="</td></tr>"))
@@ -69,7 +88,7 @@ shinyServer(function(input, output, session) {
     display.map %>%
       group_by(group, id) %>%
       ggvis(~long, ~lat) %>%
-      layer_paths(fill:=~fill_col, strokeOpacity := 0.5, strokeWidth := 0.25) %>%
+      layer_paths(fill:=~fill_col, strokeOpacity := 0.75, strokeWidth := 0.5) %>%
       add_tooltip(tooltips, "hover") %>%
       hide_legend("fill") %>%
       hide_axis("x") %>% hide_axis("y") %>%
