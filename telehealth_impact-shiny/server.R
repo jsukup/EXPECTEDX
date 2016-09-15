@@ -26,6 +26,8 @@ shinyServer(function(input, output, session) {
   us <- readOGR("data/us.geojson", "OGRGeoJSON")
   us <- us[!us$STATEFP %in% c("72"),]
   us_aea <- spTransform(us, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
+  #us_aea <- spTransform(us, CRS("+proj=ortho +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
+  
   map <- ggplot2::fortify(us_aea, region="GEOID")
 
   # Read in data
