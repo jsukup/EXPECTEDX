@@ -11,10 +11,11 @@
 library(car)
 library(dplyr)
 library(stringr)
-library(ggmap)
 library(jsonlite)
 library(RCurl)
 library(data.table)
+library(rgeos)
+library(rgdal)
 
 ##directories
 #dir.data.CHSI <- '/mnt/common/work/ExpX/r/data/CHSI'
@@ -22,6 +23,7 @@ library(data.table)
 #dir.data.HCAHPS <- '/mnt/common/work/ExpX/r/data/HCAHPS'
 #dir.data.FIPS <- '/mnt/common/work/ExpX/r/data/Census'
 #dir.data.HPSA <- '/mnt/common/work/ExpX/r/data/HPSA'
+#dir.data.GIS <- '/mnt/common/work/ExpX/r/rdata/GIS'
 #dir.export <- '/mnt/common/work/ExpX/r/data/export'
 
 dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
@@ -29,6 +31,7 @@ dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
 dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
 dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
 dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
+dir.data.GIS <- 'D:/work/ExpX/r/data/GIS/us.geojson'
 dir.export <- 'D:/work/ExpX/r/data/export'
 
 ##urls
@@ -68,7 +71,10 @@ fixCase <- function(myCol) {
   return(temp)
 }
 
-normalizedScore <- function(data, raw, scope, name) {
+normalizedScore <- function(data, raw, scope, name, method = NULL) {
+  if(is.null(method))
+    method <- "uniform"
+  
   if(scope == "nation") {
     temp <- aggregate(data[[raw]], by = list(data[["FIPS"]])
                       , function(x) {
@@ -78,7 +84,14 @@ normalizedScore <- function(data, raw, scope, name) {
                           sum(x, na.rm = TRUE)
                       })
     colnames(temp) <- c("FIPS", name)
-    temp[[name]] <- ecdf(temp[[name]])(temp[[name]])
+    
+    if(method == "uniform")
+      temp[[name]] <- ecdf(temp[[name]])(temp[[name]])
+    else if(method == "normal") {
+      temp[[name]] <- pnorm(temp[[name]], mean = mean(temp[[name]], na.rm = TRUE)
+                            , sd = sd(temp[[name]], na.rm = TRUE))
+    }
+
 
   } else if(scope == "state") {
     temp <- lapply(unique(data[["State"]]), function(x) filter(data, State == x))  #change to a list of df by state
@@ -89,14 +102,50 @@ normalizedScore <- function(data, raw, scope, name) {
                                                   else
                                                     sum(x, na.rm=TRUE)
                                                 }))  #compute total score by county
-    temp <- lapply(temp, function(df) cbind(df, tryCatch(ecdf(df[, 2])(df[, 2])
-                                                         , error = function(conds)
-                                                           return(rep(NA, times = length(df[, 2]))))))  #compute percentile
+    
+    if(method == "uniform") {
+      temp <- lapply(temp, function(df) cbind(df, tryCatch(ecdf(df[, 2])(df[, 2])
+                                                           , error = function(conds)
+                                                             return(rep(NA, times = length(df[, 2]))))))
+    } else if(method == "normal") {
+      temp <- lapply(temp, function(df) tryCatch(cbind(df, pnorm(df[, 2]
+                                                                 , mean = mean(df[, 2], na.rm = TRUE)
+                                                                 , sd = sd(df[, 2], na.rm = TRUE)))
+                                                 , error = function(conds)
+                                                   return(rep(NA, times = length(df[, 2])))))
+    }
+
+    
+    
     temp <- bind_rows(temp)
     temp[, 2] <- temp[, 3]
     temp[, 3] <- NULL
     colnames(temp) <- c("FIPS", name)
   }
+  return(temp)
+}
+
+countySmooth <- function(df, gis, smoothFactor)
+{
+  temp <- as.data.frame(gIntersects(gis, gis, byid = TRUE))
+  colnames(temp) <- gis@data$GEOID
+  temp.names <- colnames(temp)
+  val.list <- lapply(colnames(temp), function(fips) df$Telehealth.Score.Raw[df$FIPS==fips])
+  temp <- as.data.frame(Map(function(x, fips) Recode(x, paste0("0=NA;TRUE=", fips)), temp, val.list))
+  #temp <- cbind(temp.names, rowMeans(temp, na.rm = TRUE))
+  
+  temp <- apply(temp, 1, function(x) if(sum(!is.na(x)) == 0)
+    return(NA)
+    else
+      return(mean(x, na.rm = TRUE) * exp(-x * (-log(smoothFactor) / max(x, na.rm = TRUE)))))
+  
+  temp <- diag(as.matrix(as.data.frame(temp)))
+  
+  temp <- cbind(temp.names, temp)
+  colnames(temp) <- c("FIPS", "Score.adj")
+  temp <- as.data.frame(temp)
+  temp <- transform(temp, FIPS = as.character(FIPS)
+                    , Score.adj = as.numeric(as.character(Score.adj)))
   return(temp)
 }
 
@@ -414,6 +463,7 @@ state.all <- merge(CHSI.CHR.data.state, HPSA.data.state)
 state.all <- merge(state.all, BB.data.state)
 state.all <- merge(state.all, HCAHPS.data.state)
 
+
 ##COMPUTER TELEHEALTH IMPACT SCORE
 national.all <- cbind(national.all, apply(national.all[4:19], 1, function(r)
   if(sum(is.na(r)) == length(r))
@@ -429,11 +479,23 @@ state.all <- cbind(state.all, apply(state.all[4:19], 1, function(r)
     return(sum(r, na.rm = TRUE))))
 colnames(state.all)[20] <- "Telehealth.Score.Raw"
 
-temp <- normalizedScore(national.all, "Telehealth.Score.Raw", "nation", "Telehealth.Score.Final")
+##SMOOTHING
+GIS.data <- readOGR(dir.data.GIS, "OGRGeoJSON")
+
+temp <- countySmooth(national.all, GIS.data, 0.25)
+national.all <- merge(national.all, temp, by = "FIPS")
+national.all$Telehealth.Score.Raw.Adj <- rowSums(national.all[20:21], na.rm = TRUE)
+
+temp <- countySmooth(state.all, GIS.data, 0.25)
+state.all <- merge(state.all, temp, by = "FIPS")
+state.all$Telehealth.Score.Raw.Adj <- rowSums(state.all[20:21], na.rm = TRUE)
+
+##renormalize
+temp <- normalizedScore(national.all, "Telehealth.Score.Raw.Adj", "nation", "Telehealth.Score.Final", method = "uniform")
 colnames(temp)[1] <- "FIPS"
 national.all <- merge(national.all, temp, by = "FIPS")
 
-temp <- normalizedScore(state.all, "Telehealth.Score.Raw", "state", "Telehealth.Score.Final")
+temp <- normalizedScore(state.all, "Telehealth.Score.Raw.Adj", "state", "Telehealth.Score.Final", method = "uniform")
 colnames(temp)[1] <- "FIPS"
 state.all <- merge(state.all, temp, by = "FIPS")
 
@@ -445,8 +507,8 @@ national.all <- cbind(national.all, apply(national.all[4:13], 1, function(r)
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(national.all)[22] <- "CHSI.Score"
-national.all <- cbind(national.all[1:3], national.all[4:22]*10)
+colnames(national.all)[24] <- "CHSI.Score"
+national.all <- cbind(national.all[1:3], national.all[4:24]*10)
 national.all$Telehealth.Score.Final <- national.all$Telehealth.Score.Final*10
 
 state.all <- cbind(state.all, apply(state.all[4:13], 1, function(r)
@@ -454,8 +516,8 @@ state.all <- cbind(state.all, apply(state.all[4:13], 1, function(r)
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(state.all)[22] <- "CHSI.Score"
-state.all <- cbind(state.all[1:3], state.all[4:22]*10)
+colnames(state.all)[24] <- "CHSI.Score"
+state.all <- cbind(state.all[1:3], state.all[4:24]*10)
 state.all$Telehealth.Score.Final <- state.all$Telehealth.Score.Final*10
 
 #export data
