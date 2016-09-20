@@ -27,7 +27,8 @@ shinyServer(function(input, output, session) {
   us <- us[!us$STATEFP %in% c("72"),]
   us_aea <- spTransform(us, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
   #us_aea <- spTransform(us, CRS("+proj=ortho +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
-  
+  #us_aea <- spTransform(us, CRS("+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+
   map <- ggplot2::fortify(us_aea, region="GEOID")
 
   # Read in data
@@ -43,8 +44,6 @@ shinyServer(function(input, output, session) {
                   , "Broadband", "Structural", "RaD", data.names[20:21]
                   , "Telehealth Score Raw", "Score", "CHSI Score")
   
-  #data.names[1] <- "id"
-  #data.names[23] <- "Score"
   data.all <- lapply(data.all, setNames, data.names)
   
   map_d <- lapply(data.all, function(df) merge(map, select(df, id, State, Score), all.x = TRUE))
@@ -78,7 +77,6 @@ shinyServer(function(input, output, session) {
     return(tooltip.data)
   })
   
-  #FIXME: broken tooltips
   tooltips <- function(x) {
     if(is.null(x) | !(x$id %in% display.data()$id)) return(NULL)
     y <- display.data() %>% filter(id==x$id) %>% select(tooltip.data())
