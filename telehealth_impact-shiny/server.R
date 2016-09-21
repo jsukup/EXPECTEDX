@@ -25,10 +25,11 @@ shinyServer(function(input, output, session) {
 # Read US in map data
   us <- readOGR("data/us.geojson", "OGRGeoJSON")
   us <- us[!us$STATEFP %in% c("72"),]
-  us_aea <- spTransform(us, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
+  #us_aea <- spTransform(us, CRS("+proj=laea +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
   #us_aea <- spTransform(us, CRS("+proj=ortho +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +a=6370997 +b=6370997 +units=m +no_defs"))
   #us_aea <- spTransform(us, CRS("+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0"))
-
+  us_aea <- spTransform(us, CRS("+proj=robin +lat_0=45 +lon_0=-100 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+  
   map <- ggplot2::fortify(us_aea, region="GEOID")
 
   # Read in data
@@ -40,8 +41,8 @@ shinyServer(function(input, output, session) {
   names(data.all) <- gsub("\\.csv$", "", files)
   
   data.names <- colnames(data.all$National)
-  data.names <- c("id", data.names[2:13], "Poor Heath", "Diabetes", "Physician"
-                  , "Broadband", "Structural", "RaD", data.names[20:21]
+  data.names <- c("id", data.names[2:7], "Poor Heath", data.names[9], "Physician"
+                  , "Broadband", "Structural", "RaD", data.names[14:15]
                   , "Telehealth Score Raw", "Score", "CHSI Score")
   
   data.all <- lapply(data.all, setNames, data.names)
@@ -61,19 +62,29 @@ shinyServer(function(input, output, session) {
   
   display.data <- reactive(data.all[[input$level]])
   
+  map.width <- reactive({
+    if(input$view == "all")
+      map.width = 900
+    else {
+      #map.width = (range(display.map()$lat)[2] - range(display.map()$lat)[1])/(range(map_d$lat)[2] - range(map_d$lat)[1])
+      map.width = 400
+      }
+    return(map.width)
+  })
+  
   display.map <- reactive({
     if(input$view == "all")
       display.map = filter(map_d[[input$level]], State != 'AK', State != 'HI')
     else
-        display.map = filter(map_d[[input$level]], State == input$view)
+      display.map = filter(map_d[[input$level]], State == input$view)
     return(display.map)
   })
   
   tooltip.data <- reactive({
     if(input$view == "all") 
-      tooltip.data <- c(2, 3, 23)
+      tooltip.data <- c(2, 3, 17)
     else
-      tooltip.data <- c(3, 14:19, 24, 20, 23)
+      tooltip.data <- c(3, 8:13, 18, 16, 17)
     return(tooltip.data)
   })
   
@@ -84,17 +95,18 @@ shinyServer(function(input, output, session) {
             paste0("<tr><td style='text-align:left'>", names(y),
                   ":</td><td style='text-align:right'>", format(y), collapse="</td></tr>"))
     }
-  
-    display.map %>%
+
+observe({
+  display.map %>%
       group_by(group, id) %>%
       ggvis(~long, ~lat) %>%
       layer_paths(fill:=~fill_col, strokeOpacity := 0.75, strokeWidth := 0.5) %>%
       add_tooltip(tooltips, "hover") %>%
       hide_legend("fill") %>%
       hide_axis("x") %>% hide_axis("y") %>%
-      set_options(width=900, height=600, keep_aspect=TRUE) %>%
+      set_options(width=map.width(), height=600, keep_aspect = FALSE, resizable = TRUE) %>%
       bind_shiny("map")
-
+})
 # Turn off progress bar ---------------------------------------------------
 
   progress$close()
