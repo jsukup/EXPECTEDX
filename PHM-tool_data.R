@@ -71,14 +71,6 @@ fixCase <- function(myCol) {
   return(temp)
 }
 
-#for computing sums
-naSum <- function(dat) {
-  if(sum(!is.na(dat)) != 0)
-    return(sum(dat, na.rm = TRUE))
-  else
-    return(NA)
-}
-
 normalizedScore <- function(data, raw, scope, name, method = NULL) {
   if(is.null(method))
     method <- "uniform"
@@ -233,13 +225,10 @@ temp <- as.data.frame(t(apply(temp, 1, function(r)
       return(sum(r[n:(n+3)], na.rm = TRUE))
     ))))
 
-temp$Cancer <- apply(select(temp, 1, 2, 3, 5, 8), 1, naSum)
-temp$HeartDis <- apply(select(temp, 4, 6, 7), 1, naSum)
-temp <- select(temp, Cancer, HeartDis, 10, 9)
-
-colnames(temp) <- c("Cancer", "HeartDis", "Injury", "Homicide")
-
-
+colnames(temp) <- c("Cancer.B", "Cancer.C", "Cancer.D"
+                    , "HeartDis.D", "Cancer.E", "HeartDis.E"
+                    , "HeartDis.F", "Cancer.F", "Homicide.B"
+                    , "Injury.C")
 CHSI.data.all <- cbind(CHSI.data.all[1:5], temp)
 rm(temp)
 
@@ -285,13 +274,13 @@ if(export.CHSI.CSR)
 CHSI.CHR.data.all$FIPS <- paste0(CHSI.CHR.data.all$State_FIPS_Code, CHSI.CHR.data.all$County_FIPS_Code)
 CHSI.CHR.data.all <- select(CHSI.CHR.data.all, -State_FIPS_Code, -County_FIPS_Code, CHSI_County_Name
                             , -CHSI_State_Name, -CHSI_State_Abbr, -CHSI_County_Name)
-CHSI.CHR.data.all <- cbind(CHSI.CHR.data.all[8], CHSI.CHR.data.all[6], CHSI.CHR.data.all[1:4], CHSI.CHR.data.all[5], CHSI.CHR.data.all[7])
+CHSI.CHR.data.all <- cbind(CHSI.CHR.data.all[14], CHSI.CHR.data.all[12], CHSI.CHR.data.all[1:11], CHSI.CHR.data.all[13])
 CHSI.CHR.data.all <- transform(CHSI.CHR.data.all, Population = as.numeric(gsub(',', '', Population))
                                , Poor.Health = as.numeric(Poor.Health)
                                , Diabetes = as.numeric(Diabetes))
 
 #national percentile
-CHSI.CHR.data.national <- lapply(colnames(CHSI.CHR.data.all[3:8]), function(n)
+CHSI.CHR.data.national <- lapply(colnames(CHSI.CHR.data.all[3:14]), function(n)
   normalizedScore(CHSI.CHR.data.all, n, "nation", n))
 CHSI.CHR.data.national <- Reduce(merge, CHSI.CHR.data.national)
 CHSI.CHR.data.national <- merge(select(FIPS.lookup, FIPS, State, County)
@@ -299,7 +288,7 @@ CHSI.CHR.data.national <- merge(select(FIPS.lookup, FIPS, State, County)
 
 #state percentile
 temp <- merge(select(FIPS.lookup, FIPS, State), CHSI.CHR.data.all, by = "FIPS")
-CHSI.CHR.data.state <- lapply(colnames(CHSI.CHR.data.all[3:8]), function(n)
+CHSI.CHR.data.state <- lapply(colnames(CHSI.CHR.data.all[3:14]), function(n)
   normalizedScore(temp, n, "state", n))
 CHSI.CHR.data.state <- Reduce(merge, CHSI.CHR.data.state)
 CHSI.CHR.data.state <- merge(select(FIPS.lookup, FIPS, State, County)
@@ -475,31 +464,31 @@ state.all <- merge(state.all, BB.data.state)
 state.all <- merge(state.all, HCAHPS.data.state)
 
 
-##COMPUTE TELEHEALTH IMPACT SCORE
-national.all <- cbind(national.all, apply(national.all[4:13], 1, function(r)
+##COMPUTER TELEHEALTH IMPACT SCORE
+national.all <- cbind(national.all, apply(national.all[4:19], 1, function(r)
   if(sum(is.na(r)) == length(r))
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(national.all)[14] <- "Telehealth.Score.Raw"
+colnames(national.all)[20] <- "Telehealth.Score.Raw"
 
-state.all <- cbind(state.all, apply(state.all[4:13], 1, function(r)
+state.all <- cbind(state.all, apply(state.all[4:19], 1, function(r)
   if(sum(is.na(r)) == length(r))
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(state.all)[14] <- "Telehealth.Score.Raw"
+colnames(state.all)[20] <- "Telehealth.Score.Raw"
 
 ##SMOOTHING
 GIS.data <- readOGR(dir.data.GIS, "OGRGeoJSON")
 
 temp <- countySmooth(national.all, GIS.data, 0.25)
 national.all <- merge(national.all, temp, by = "FIPS")
-national.all$Telehealth.Score.Raw.Adj <- rowSums(national.all[14:15], na.rm = TRUE)
+national.all$Telehealth.Score.Raw.Adj <- rowSums(national.all[20:21], na.rm = TRUE)
 
 temp <- countySmooth(state.all, GIS.data, 0.25)
 state.all <- merge(state.all, temp, by = "FIPS")
-state.all$Telehealth.Score.Raw.Adj <- rowSums(state.all[14:15], na.rm = TRUE)
+state.all$Telehealth.Score.Raw.Adj <- rowSums(state.all[20:21], na.rm = TRUE)
 
 ##renormalize
 temp <- normalizedScore(national.all, "Telehealth.Score.Raw.Adj", "nation", "Telehealth.Score.Final", method = "uniform")
@@ -513,22 +502,22 @@ state.all <- merge(state.all, temp, by = "FIPS")
 rm(temp)
 
 #compute CHSI score and adjust units
-national.all <- cbind(national.all, apply(national.all[4:7], 1, function(r)
+national.all <- cbind(national.all, apply(national.all[4:13], 1, function(r)
   if(sum(is.na(r)) == length(r))
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(national.all)[18] <- "CHSI.Score"
-national.all[4:18] <- national.all[4:18]*10
+colnames(national.all)[24] <- "CHSI.Score"
+national.all <- cbind(national.all[1:3], national.all[4:24]*10)
 national.all$Telehealth.Score.Final <- national.all$Telehealth.Score.Final*10
 
-state.all <- cbind(state.all, apply(state.all[4:7], 1, function(r)
+state.all <- cbind(state.all, apply(state.all[4:13], 1, function(r)
   if(sum(is.na(r)) == length(r))
     return(NA)
   else
     return(sum(r, na.rm = TRUE))))
-colnames(state.all)[18] <- "CHSI.Score"
-state.all[4:18] <- state.all[4:18]*10
+colnames(state.all)[24] <- "CHSI.Score"
+state.all <- cbind(state.all[1:3], state.all[4:24]*10)
 state.all$Telehealth.Score.Final <- state.all$Telehealth.Score.Final*10
 
 #export data
