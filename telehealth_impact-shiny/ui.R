@@ -40,7 +40,8 @@ shinyUI(fluidPage(
                   A score of 100 at the national level for example, represents the county that would benefit the most 
                   from telehealth in the entire US whereas a score of 100 at the state level would represent the county 
                   that would benefit the most within the state.."),
-               p(strong("View: "), "Controls which map to draw.  Available options are each state or the entire continental US."),
+               p(strong("View: "), "Controls which map to draw.  Available options are each state or the entire continental US.  
+                 Alaska and Hawaii are available with state view only."),
                p(strong("Tooltips: "), "More data is displayed when view is set to a particular state. 
                  Each score is out of a possible 10 and the final score is out of 100.")
   ),
