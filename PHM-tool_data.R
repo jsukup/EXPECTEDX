@@ -531,7 +531,13 @@ colnames(state.all)[18] <- "CHSI.Score"
 state.all[4:18] <- state.all[4:18]*10
 state.all$Telehealth.Score.Final <- state.all$Telehealth.Score.Final*10
 
+#variance
+var.national <- var(national.all[4:18], na.rm = TRUE)
+var.state <- var(state.all[4:18], na.rm = TRUE)
+
 #export data
 setwd(dir.export)
 write.csv(national.all, "telehealth-score_national.csv", row.names = FALSE)
 write.csv(state.all, "telehealth-score_state.csv", row.names = FALSE)
+write.csv(var.national, "national_var.csv", row.names = FALSE)
+write.csv(var.state, "state_var.csv", row.names = FALSE)

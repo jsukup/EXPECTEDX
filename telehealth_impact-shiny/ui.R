@@ -14,6 +14,7 @@ shinyUI(fluidPage(
   titlePanel("Telehealth Impact"),
   sidebarPanel(radioButtons("level", "Scoring Level"
                             , c("National", "State"))
+               , checkboxInput("hospital", "Show Hospitals", FALSE)
                , selectInput("view", "View"
                              , c('All' = 'all'
                                  , 'Alabama'='AL', 'Alaska'='AK', 'Arizona'='AZ'
