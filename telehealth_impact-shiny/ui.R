@@ -11,7 +11,7 @@ library(ggvis)
 # import state data
 
 shinyUI(fluidPage(
-  titlePanel("Telehealth Impact"),
+  titlePanel("Telehealth Impact Score (TIS)"),
   sidebarPanel(radioButtons("level", "Scoring Level"
                             , c("National", "State"))
                , selectInput("view", "View"
@@ -34,16 +34,16 @@ shinyUI(fluidPage(
                                  , 'Virginia'='VA', 'Washington'='WA', 'West Virginia'='WV'
                                  , 'Wisconsin'='WI', 'Wyoming'='WY')
                              , width = "200px"),
-               p(strong("NOTE: "), "This involves many objects, so it may take a minute or two to load 
+               p(strong("NOTE: "), "This involves many objects, so it may take a minute or two to load
                  espectially when viewing all counties."),
-               p(strong("Scoring Level: "), "Controls whether scores are to be calculated at the state or national level.  
-                  A score of 100 at the national level for example, represents the county that would benefit the most 
-                  from telehealth in the entire US whereas a score of 100 at the state level would represent the county 
-                  that would benefit the most within the state.."),
-               p(strong("View: "), "Controls which map to draw.  Available options are each state or the entire continental US.  
+               p(strong("Scoring Level: "), "Controls whether scores are to be calculated at the state or national level.
+                  A score of 100 at the national level for example, represents the county that would benefit the most
+                  from telehealth in the entire US whereas a score of 100 at the state level would represent the county
+                  that would benefit the most within the state."),
+               p(strong("View: "), "Controls which map to draw.  Available options are each state or the entire continental US.
                  Alaska and Hawaii are available with state view only."),
-               p(strong("Tooltips: "), "More data is displayed when view is set to a particular state. 
-                 Each score is out of a possible 10 and the final score is out of 100.")
+               p(strong("Tooltips: "), "More data is displayed when view is set to a particular state.
+                 Each score is out of a possible 10 and the final score is out of 100. To resize window in State View, please click and drag window from the lower right")
   ),
   mainPanel(
     ggvisOutput("map")
