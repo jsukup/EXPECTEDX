@@ -43,7 +43,7 @@ shinyServer(function(input, output, session) {
   data.names <- colnames(data.all$National)
   data.names <- c("id", data.names[2:7], "Poor/Fair Heath", data.names[9], "HPSA"
                   , "Broadband", "Hospital IT Readiness", "Readmissions", data.names[14:15]
-                  , "Telehealth Score Raw", "Score", "CHSI Score")
+                  , "Telemedicine Score Raw", "Score", "CHSI Score")
 
   data.all <- lapply(data.all, setNames, data.names) %>%
       lapply(function(df) cbind(df[ , c(1:3)], lapply(df[ , -c(1:3)], function(x) round(x, 2))))

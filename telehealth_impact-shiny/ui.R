@@ -11,7 +11,7 @@ library(ggvis)
 # import state data
 
 shinyUI(fluidPage(
-  titlePanel("Telehealth Impact Score (TIS)"),
+  titlePanel("Telemedicine Impact Score (TIS)"),
   sidebarPanel(radioButtons("level", "Scoring Level"
                             , c("National", "State"))
                , selectInput("view", "View"
