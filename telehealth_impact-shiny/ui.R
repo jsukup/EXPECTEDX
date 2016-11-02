@@ -48,4 +48,4 @@ shinyUI(fluidPage(
   mainPanel(
     ggvisOutput("map")
       ),
-  fluidRow(column(12, p(strong("NOTE: This involves many objects, so it may take a minute or two to load espectially when viewing all counties."))))))
+  fluidRow(column(12, p(strong("NOTE: This involves many objects, so it may take a minute or two to load especially when viewing all counties."))))))
