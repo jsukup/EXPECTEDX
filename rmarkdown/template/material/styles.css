@@ -9,6 +9,9 @@
 
 .header-panel {
     background-color: #2D4471;
+	background-image: url(logo_main_micro.png);
+	background-repeat: no-repeat;
+    background-position: 98% 50%; 
     height: 144px;
     position: relative;
     z-index: 3;
