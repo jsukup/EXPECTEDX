@@ -6,6 +6,15 @@
 
 /* readthedown */
 
+h1.title{
+	background-image: url(logo_alone_sm.png);
+	background-size: 101px 68px;
+	background-repeat: no-repeat;
+    background-position: 98% 0%;
+	height: 68px;
+    font-size: 300%;
+}
+
 #table-of-contents{
     position:fixed;
     top:0;
@@ -14,7 +23,6 @@
     height:100%;
     background:#09090A;
     z-index:200;
-    font-size: 16px;
 }
 
 #table-of-contents h2{
@@ -42,7 +50,7 @@
 }
 
 h1,h2,h3,h4,h5,h6,legend{
-    font-family:"Roboto Slab","ff-tisa-web-pro","Georgia",Arial,sans-serif;
+    font-family:"Calibri";
     font-weight:700;
     color: #2D4471;
 }

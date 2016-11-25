@@ -7,9 +7,14 @@
 
 /* As hex codes */
 
+html * {
+   font-family: Calibri !important;
+}
+
 .header-panel {
     background-color: #2D4471;
-	background-image: url(logo_main_micro.png);
+	background-image: url(logo_main_mid_tagline_revcolor.png);
+	background-size: 128px 73px;
 	background-repeat: no-repeat;
     background-position: 98% 50%; 
     height: 144px;

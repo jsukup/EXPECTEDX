@@ -22,8 +22,6 @@ opts_chunk$set(echo=FALSE,
 opts_knit$set(width=75)
 ```
 
-<img src="logo_main_sm.png" width="196" height ="112" style="position:absolute;top:0px;right:0px;margin:10px;"/>
-
 # Abstract
 A paragraph summarizing the entire study, including a brief statement of the 
 problem, the motivation, data soruces, analysis and results, and general 
