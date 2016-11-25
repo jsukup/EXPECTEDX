@@ -1,9 +1,9 @@
 ###Script to merge all datasets
-###CHR: County Health Rankings
-###CHSI: Community Health Status Indicators
 ###CHR Obtained From: http://www.countyhealthrankings.org/rankings/data
 ###CHSI Obtained From: https://catalog.data.gov/dataset/community-health-status-indicators-chsi-to-combat-obesity-heart-disease-and-cancer
-###HCAHPS OBTAINED FROM (8/1/16): https://data.medicare.gov/Hospital-Compare/Patient-survey-HCAHPS-Hospital/dgck-syfz
+###HCAHPS Obtained from (8/1/16): https://data.medicare.gov/Hospital-Compare/Patient-survey-HCAHPS-Hospital/dgck-syfz
+###HPSA Obtained from: https://datawarehouse.hrsa.gov/DataDownload/DD_Files/BCD_HPSA_FCT_DET_PC.csv
+###Broadband map obtained from: http://www.broadbandmap.gov/broadbandmap/almanac/jun2014/rankby/state/01/population/downloadSpeedGreaterThan10000k/county?format=json&order=asc
 ###FIPS Lookup table obtained from: https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt
 ###Data Obtained On: 8/16/2016
 
@@ -26,13 +26,21 @@ library(rgdal)
 #dir.data.GIS <- '/mnt/common/work/ExpX/r/rdata/GIS'
 #dir.export <- '/mnt/common/work/ExpX/r/data/export'
 
-dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
-dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
-dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
-dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
-dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
-dir.data.GIS <- 'D:/work/ExpX/r/data/GIS/us.geojson'
-dir.export <- 'D:/work/ExpX/r/data/export'
+# dir.data.CHSI <- 'D:/work/ExpX/r/data/CHSI'
+# dir.data.CHR <- 'D:/work/ExpX/r/data/CHR'
+# dir.data.HCAHPS <- 'D:/work/ExpX/r/data/HCAHPS'
+# dir.data.FIPS <- 'D:/work/ExpX/r/data/Census'
+# dir.data.HPSA <- 'D:/work/ExpX/r/data/HPSA'
+# dir.data.GIS <- 'D:/work/ExpX/r/data/GIS/us.geojson'
+# dir.export <- 'D:/work/ExpX/r/data/export'
+
+dir.data.CHSI <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/CHSI'
+dir.data.CHR <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/CHR'
+dir.data.HCAHPS <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/HCAHPS'
+dir.data.FIPS <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/Census'
+dir.data.HPSA <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/HPSA'
+dir.data.GIS <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/GIS/us.geojson'
+dir.export <- 'C:/Program Files (x86)/Git/newprojects/EXPECTEDX/data/export'
 
 ##urls
 url.broadband.pt1 <- 'http://www.broadbandmap.gov/broadbandmap/almanac/jun2014/rankby/state/'
