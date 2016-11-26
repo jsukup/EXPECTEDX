@@ -7,6 +7,10 @@
 
 /* As hex codes */
 
+html * {
+   font-family: Calibri !important;
+}
+
 .color-primary-0 { color: #2D4471 }	/* Main Primary color */
 .color-primary-1 { color: #0756F0 }
 .color-primary-2 { color: #1847A5 }
