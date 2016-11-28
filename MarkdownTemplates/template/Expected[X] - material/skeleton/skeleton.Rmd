@@ -1,0 +1,79 @@
+---
+title: "Expected [X] Template"
+output:
+  rmdformats::material:
+    highlight: kate
+    self_contained: no
+    thumbnails: true
+    gallery: true
+    fig_width: 4
+    fig_height: 4
+    css: styles.css
+---
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print = "75")
+opts_chunk$set(echo = TRUE,
+	             cache = TRUE,
+               prompt = FALSE,
+               tidy = TRUE,
+               comment = NA,
+               message = FALSE,
+               warning = FALSE)
+opts_knit$set(width = 75)
+```
+
+# Abstract
+A paragraph summarizing the entire study, including a brief statement of the 
+problem, the motivation, data soruces, analysis and results, and general 
+conclusions.
+
+# Introduction
+Discussion of problem here, including motivation, underlying theory, etc...
+
+## Data Sources
+Discussion of data sources followed by a bullet list including ULRs, etc...
+
+* **Data Sources**
+    
+# Data Processing
+Discussion of general data processing strategy from sources.  Discussion of API
+calls, imports, etc...
+
+## Libraries
+Discussion of required libraries.
+```{r}
+# Insert library calls here
+```
+
+## Reshape
+Discussion of current data format and reshaping strategy.
+
+```{r}
+# Insert data reshaping code here
+```
+
+## Calculations
+Discussion of some aggregate calculations to be made before data analysis, 
+computing a yearly average for example.
+
+```{r}
+# Insert data calculation code here
+```
+
+# Analysis and Results
+Discussion of general analysis strategy, for example, the kinds of models and 
+techiques that will be utilized.  This section will likely contain many code 
+chucks for both calculations and plots, below each of which sould be a 
+discussion of the plot, table, code, etc...
+
+```{r}
+# Insert analysis code here.  Code may involve plots, tables, and values.
+```
+
+# Conclusions
+Discussion of results, difficulties, and further investigation.

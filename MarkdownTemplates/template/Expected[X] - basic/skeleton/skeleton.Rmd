@@ -1,63 +1,47 @@
 ---
 title: "Expected [X] Template"
 output:
-  rmdformats::material:
-    highlight: kate
-    self_contained: true
-    thumbnails: true
-    gallery: true
-    fig_width: 4
-    fig_height: 4
+  html_document:
     css: styles.css
+    theme: cosmo
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
 ---
 
-```{r knitr_init, echo=FALSE, cache=FALSE}
-library(knitr)
-library(rmdformats)
+<img src="logo_main_sm.png" width="196" height ="112" style="position:absolute;top:0px;right:0px;margin:10px;"/>
 
-## Global options
-options(max.print = "75")
-opts_chunk$set(echo = TRUE,
-	             cache = TRUE,
-               prompt = FALSE,
-               tidy = TRUE,
-               comment = NA,
-               message = FALSE,
-               warning = FALSE)
-opts_knit$set(width = 75)
-```
-
-# Abstract
+## Abstract
 A paragraph summarizing the entire study, including a brief statement of the 
 problem, the motivation, data soruces, analysis and results, and general 
 conclusions.
 
-# Introduction
+## Introduction
 Discussion of problem here, including motivation, underlying theory, etc...
 
-## Data Sources
+### Data Sources
 Discussion of data sources followed by a bullet list including ULRs, etc...
 
 * **Data Sources**
     
-# Data Processing
+## Data Processing
 Discussion of general data processing strategy from sources.  Discussion of API
 calls, imports, etc...
 
-## Libraries
+### Libraries
 Discussion of required libraries.
 ```{r}
 # Insert library calls here
 ```
 
-## Reshape
+### Reshape
 Discussion of current data format and reshaping strategy.
 
 ```{r}
 # Insert data reshaping code here
 ```
 
-## Calculations
+### Calculations
 Discussion of some aggregate calculations to be made before data analysis, 
 computing a yearly average for example.
 
@@ -65,7 +49,7 @@ computing a yearly average for example.
 # Insert data calculation code here
 ```
 
-# Analysis and Results
+## Analysis and Results
 Discussion of general analysis strategy, for example, the kinds of models and 
 techiques that will be utilized.  This section will likely contain many code 
 chucks for both calculations and plots, below each of which sould be a 
@@ -75,5 +59,5 @@ discussion of the plot, table, code, etc...
 # Insert analysis code here.  Code may involve plots, tables, and values.
 ```
 
-# Conclusions
+## Conclusions
 Discussion of results, difficulties, and further investigation.
