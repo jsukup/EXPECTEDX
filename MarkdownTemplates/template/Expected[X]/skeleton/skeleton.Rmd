@@ -3,7 +3,7 @@ title: "Expected [X] Template"
 output:
   rmdformats::material:
     highlight: kate
-    self_contained: true
+    self_contained: no
     thumbnails: true
     gallery: true
     fig_width: 4
