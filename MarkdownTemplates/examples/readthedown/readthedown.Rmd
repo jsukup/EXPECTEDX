@@ -3,6 +3,7 @@ title: "Expected [X] Template"
 output:
   rmdformats::readthedown:
     highlight: kate
+    self_contained: false
     css: styles.css
 ---
 
@@ -25,7 +26,7 @@ opts_knit$set(width=75)
 # Abstract
 A paragraph summarizing the entire study, including a brief statement of the 
 problem, the motivation, data soruces, analysis and results, and general 
-conclusions.
+conclusions.xxxxxxx
 
 # Introduction
 Discussion of problem here, including motivation, underlying theory, etc...
