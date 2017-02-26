@@ -1,3 +1,6 @@
+##Microsoft Emotion API - Video Ad Testing
+
+##Load libraries
 library(httr)
 library(magrittr)
 library(purrr)
@@ -6,20 +9,22 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-apiUrl <- 'https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognizeinvideo?outputStyle=perFrame'
+apiUrl <- 'https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognizeinvideo?outputStyle=perFrame' #API endpoint URL
 
-key <- '935271b2f2ae41e7b4298ce3c7216ec1'
+key <- '935271b2f2ae41e7b4298ce3c7216ec1' #Auth key
 
-orig_url <- 'https://1drv.ms/v/s!As_lzte5x5PDaPyuv0F3AN91nHo'; 
+orig_url <- 'https://1drv.ms/v/s!As_lzte5x5PDaPyuv0F3AN91nHo' #Video URL
 
+##Rename video link for direct download
 urlVideo <- RCurl::base64(orig_url) %>% 
     gsub('\\+', '\\-', .) %>% 
     gsub('\\/', '\\_', .) %>% 
     sub('\\=$', '', .) %>% 
     paste0('https://api.onedrive.com/v1.0/shares/u!', ., '/root/content')
 
-mybody <- list(url = urlVideo)
+mybody <- list(url = urlVideo) #Put URL in list for API POST
 
+##Pass video to Emotion API for processing
 faceEMO <- httr::POST(
     url = apiUrl,
     httr::content_type('application/json'),
@@ -28,8 +33,9 @@ faceEMO <- httr::POST(
     encode = 'json'
 )
 
-operationLocation <- httr::headers(faceEMO)[['operation-location']]
+operationLocation <- httr::headers(faceEMO)[['operation-location']] #Extract link of video processing location for status updates
 
+##Monitor video processing
 while(TRUE){
     ret <- httr::GET(operationLocation,
                      httr::add_headers(.headers = c('Ocp-Apim-Subscription-Key' = key)))
@@ -47,12 +53,17 @@ while(TRUE){
     }
 }
 
-data <- (con$processingResult %>% jsonlite::fromJSON())$fragments
+data <- (con$processingResult %>% jsonlite::fromJSON())$fragments #Extract JSON of processed video
+
+##Convert JSON to data frame
 data$events <- purrr::map(data$events, function(events){
     events %>% purrr::map(function(event){
         jsonlite::flatten(event)
     }) %>% dplyr::bind_rows()
 })
 
-data <- unnest(data,events)
-data$frame.id <- as.numeric(rownames(data))
+data <- unnest(data,events) #Unnest events variable into individual emotion scores
+data <- data[-1831,] #Remove final row to make rows divisable by 61 seconds (total test video length 1:01)
+data$seconds <- rep(1:61, each = 30) #Add time stamp in seconds
+
+data <- aggregate(data[,9:16], by = list(seconds = data$seconds), mean) #Aggregate scores by seconds
