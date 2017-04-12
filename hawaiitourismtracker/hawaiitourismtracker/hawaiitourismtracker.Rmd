@@ -39,7 +39,7 @@ Expected X believes there are two areas for improvement which will be the overal
 
 While the improved resolution and disaggregation of forecast data is the final project goal, the accuracy of the forecast itself is of ultimate importance. This study will utilize traditional time series prediction methods as well as new methods that integrate Google Trends search history. The underlying hypothesis is that Google search history can be a leading indicator for future arrivals to the state.
 
-We will be looking at domestic and international visitors.
+We will be looking at domestic and international visitors from the three main markets: United States, Japan, and Canada.
 
 ## Data Sources
 Baseline time series variables: trend, seasonality, cycle
@@ -108,6 +108,20 @@ gdp.us <- select(gdp, quarter, `United States`)
 gdp.ca <- data.frame(date = date, canadagdp = spline(gdp.ca, method = "fmm", xout = date)$y)
 gdp.jp <- data.frame(date = date, japangdp = spline(gdp.jp, method = "fmm", xout = date)$y)
 gdp.us <- data.frame(date = date, usgdp = spline(gdp.us, method = "fmm", xout = date)$y)
+########
+####MONTHLY CPI INDICES (DERIVED FROM QUARTERLY CPI INDICES)####
+setwd('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/')
+files <- list.files(pattern = '^C')
+for (i in 1:length(files)) assign(files[i], read_excel(files[i], sheet = 2)[-1,])
+
+core.cpi.ns <- `Core CPI, not seas. adj..xlsx`
+core.cpi.s <- `Core CPI, seas. adj..xlsx`
+price.cpi.yoy <- `CPI Price, % y-o-y, seas. adj..xlsx`
+price.cpi.ns <- `CPI Price, not seas. adj..xlsx`
+price.cpi.s <- `CPI Price, not seas. adj..xlsx`
+rm(list = files)
+
+
 ```
 
 ## Calculations
