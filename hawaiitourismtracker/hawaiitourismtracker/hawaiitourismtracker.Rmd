@@ -1,0 +1,132 @@
+---
+title: "Hawaii Tourism Tracker"
+output:
+rmdformats::material:
+highlight: kate
+self_contained: no
+thumbnails: true
+gallery: true
+fig_width: 4
+fig_height: 4
+css: styles.css
+---
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print = "75")
+opts_chunk$set(echo = TRUE,
+               cache = TRUE,
+               prompt = FALSE,
+               tidy = TRUE,
+               comment = NA,
+               message = FALSE,
+               warning = FALSE)
+opts_knit$set(width = 75)
+```
+
+# Abstract
+xxx
+
+# Introduction
+Predicting tourist arrivals is a key element to resource planning for the industry and its derivatives. There are a variety of models available for visitor prediction and a thorough literature review was performed prior to this research in order to design the most accurate model. 
+
+Specifically, this research is designed to predict tourist arrivals (by air) to the state of Hawaii using multiple predictive variables including Google Trends search data. The Hawaii Tourism Authority (HTA) and the Department of Business, Economic Development, and Tourism (DBEDT) collects and manages tourism data which is freely available on their respective websites. Based on a review of the data, it appears that the maximum resolution of forecasts provided by DBEDT are annual with quarterly updates and only for the whole state of Hawaii (ex. http://dbedt.hawaii.gov/visitor/tourism-forecast/).
+
+Expected X believes there are two areas for improvement which will be the overall goal of this research: 1) visitor forecasts should be at a higher resolution, particularly monthly. This will allow for greater planning windows for aligning resources (i.e. pricing, temporary hires, resource allocation, etc.). Additionally, annual forecast updates are only released quarterly and approximately one month into the current quarter. Minimizing these delays is an additional improvement to the current process. 2) visitor forecasts are only reported in aggregate for the entire state of Hawaii. Each island may have a unique travel seasonality that should be reported separately to allow tourism/hospitality businesses to plan according to their specific island's pattern.
+
+While the improved resolution and disaggregation of forecast data is the final project goal, the accuracy of the forecast itself is of ultimate importance. This study will utilize traditional time series prediction methods as well as new methods that integrate Google Trends search history. The underlying hypothesis is that Google search history can be a leading indicator for future arrivals to the state.
+
+We will be looking at domestic and international visitors.
+
+## Data Sources
+Baseline time series variables: trend, seasonality, cycle
+
+Data is obtained from HTA, DBEDT, Google Trends, GDP, CPI, hotel accommidation price, number of hotel rooms, transportation costs, monthly seasonal index (monthly passengers divided by average annual passengers), and substitute price index.
+
+GDP, unemployment rate, housing price index, exchange rates (not applicable due to aggregation of domestic/international), and hotel occupancy rates are currently used in forecasting by HTA
+
+**Data Sources**
+* Historical Data File [http://www.hawaiitourismauthority.org/default/assets/File/reports/visitor-statistics/2015%20Historical%20Visitors.xls]
+
+*Historical GDP from World Bank's Global Economic Monitor (seasonally adjusted in current $USD) [http://data.worldbank.org/data-catalog/global-economic-monitor]
+
+# Data Processing
+Discussion of general data processing strategy from sources.  Discussion of API
+calls, imports, etc...
+
+## Libraries
+Discussion of required libraries.
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readr)
+library(readxl)
+library(lubridate)
+```
+
+## Reshape
+Discussion of current data format and reshaping strategy.
+
+```{r, message=FALSE, warning=FALSE}
+####HISTORIC VISITOR ARRIVALS####
+hvd <- read_csv('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/historicvisitors.csv', 
+                skip = 1)[-c(131:136),]
+hvd <- hvd %>% 
+    select(matches('x|dom|int')) %>% 
+    mutate(id = rep(c('state','oahu','mauict','maui','molokai','lanai','kauai','hawaii','hilo','kona'), each = 13)) %>% 
+    setNames(.,c('mt', paste(rep(1990:2015, by = 1, each = 2), rep(c('d','i'))), 'loc')) %>% 
+    filter(!grepl('[A-Z][A-Z]', mt)) %>% 
+    mutate(month = rep(seq(1,12), length.out = 120))
+
+int <- select(hvd, matches('month|i|loc'))
+names(int) <- gsub(' i', '', names(int))
+int <- gather(int, year, visitors, `1990`:`2015`)
+int$date <- paste(int$year, int$month, sep = '-')
+int$date <- parse_date_time(int$date, '%Y-%m')
+int <- split(int, int$loc)
+
+dom <- select(hvd, matches('month|d|loc'))
+names(dom) <- gsub(' d', '', names(dom))
+dom <- gather(dom, year, visitors, `1990`:`2015`)
+dom$date <- paste(dom$year, dom$month, sep = '-')
+dom$date <- parse_date_time(dom$date, '%Y-%m')
+dom <- split(dom, dom$loc)
+########
+####MONTHLY GDP (DERIVED FROM QUARTERLY GDP)####
+gdp <- read_excel('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/GDP at market prices, current US$, millions, seas. adj..xlsx', 
+                  sheet = 2)[-1,]
+names(gdp)[1] <- 'quarter'
+gdp$quarter <- parse_date_time(gdp$quarter, '%Y-%q')
+date <- seq(gdp$quarter[1], tail(gdp$quarter, 1), by = 'month')
+
+gdp.ca <- select(gdp, quarter, Canada)
+gdp.jp <- select(gdp, quarter, Japan)
+gdp.us <- select(gdp, quarter, `United States`)
+
+gdp.ca <- data.frame(date = date, canadagdp = spline(gdp.ca, method = "fmm", xout = date)$y)
+gdp.jp <- data.frame(date = date, japangdp = spline(gdp.jp, method = "fmm", xout = date)$y)
+gdp.us <- data.frame(date = date, usgdp = spline(gdp.us, method = "fmm", xout = date)$y)
+```
+
+## Calculations
+Discussion of some aggregate calculations to be made before data analysis, 
+computing a yearly average for example.
+
+```{r}
+# Insert data calculation code here
+```
+
+# Analysis and Results
+Discussion of general analysis strategy, for example, the kinds of models and 
+techiques that will be utilized.  This section will likely contain many code 
+chucks for both calculations and plots, below each of which sould be a 
+discussion of the plot, table, code, etc...
+
+```{r}
+# Insert analysis code here.  Code may involve plots, tables, and values.
+```
+
+# Conclusions
+Discussion of results, difficulties, and further investigation.
