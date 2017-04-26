@@ -72,7 +72,7 @@ Discussion of current data format and reshaping strategy.
 ```{r, message=FALSE, warning=FALSE}
 ####HISTORIC VISITOR ARRIVALS####
 hvd <- read_csv('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/historicvisitors.csv', 
-                skip = 1)[-c(131:136),]
+                skip = 1)[-c(131:136),] ## (http://www.hawaiitourismauthority.org/default/assets/File/reports/visitor-statistics/2015%20Historical%20Visitors.xls)
 hvd <- hvd %>% 
     select(matches('x|dom|int')) %>% 
     mutate(id = rep(c('state','oahu','mauict','maui','molokai','lanai','kauai','hawaii','hilo','kona'), each = 13)) %>% 
@@ -95,8 +95,8 @@ dom$date <- parse_date_time(dom$date, '%Y-%m')
 dom <- split(dom, dom$loc)
 ########
 ####MONTHLY GDP (DERIVED FROM QUARTERLY GDP)####
-gdp <- read_excel('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/GDP at market prices, current US$, millions, seas. adj..xlsx', 
-                  sheet = 2)[-1,]
+gdp <- read_excel('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/GDP at market prices, constant US$, millions, seas. adj..xlsx', 
+                  sheet = 2)[-1,] ##http://data.worldbank.org/data-catalog/global-economic-monitor
 names(gdp)[1] <- 'quarter'
 gdp$quarter <- parse_date_time(gdp$quarter, '%Y-%q')
 date <- seq(gdp$quarter[1], tail(gdp$quarter, 1), by = 'month')
@@ -110,7 +110,7 @@ gdp.jp <- data.frame(date = date, japangdp = spline(gdp.jp, method = "fmm", xout
 gdp.us <- data.frame(date = date, usgdp = spline(gdp.us, method = "fmm", xout = date)$y)
 ########
 ####MONTHLY CPI INDICES (DERIVED FROM QUARTERLY CPI INDICES)####
-setwd('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/')
+setwd('C:/Program Files (x86)/Git/newprojects/EXPECTEDX/hawaiitourismtracker/data/') ##http://data.worldbank.org/data-catalog/global-economic-monitor
 files <- list.files(pattern = '^C')
 for (i in 1:length(files)) assign(files[i], read_excel(files[i], sheet = 2)[-1,])
 
