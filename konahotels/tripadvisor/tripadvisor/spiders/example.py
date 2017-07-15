@@ -30,12 +30,12 @@ class TrSpider(scrapy.Spider):
 
     def parse_review(self, response):
         item = TripadvisorItem()
-        item['headline'] = [response.xpath('translate(//div[@class="quote"]/text(),"!"," ")').extract()[0][1:-1]]
+        item['headline'] = response.xpath('translate(//div[@class="quote"]/text(),"!"," ")').extract()[0][1:-1]
         item['review'] = response.xpath('translate(//div[@class="entry"]/p,"\n"," ")').extract()[0]
-        item['bubbles'] = [r.split('_')[-1] for r in response.xpath("//div[contains(@class, 'reviewItemInline')]//span[contains(@class, 'ui_bubble_rating')]/@class").extract()][0]
-        item['date'] = response.xpath('//span[@class="ratingDate relativeDate"]/@title').extract()
+        item['bubbles'] = response.xpath('//span[contains(@class,"ui_bubble_rating")]/@alt').extract()[0]
+        item['date'] = response.xpath('normalize-space(//span[contains(@class,"ratingDate")]/@content)').extract()[0]
         item['hotel'] = response.xpath('normalize-space(//span[@class="altHeadInline"]/a/text())').extract()[0]
-
+        return item
 
 
 ##Original parse from https://www.tripadvisor.com/Hotel_Review-g2312116-d113123-Reviews-Fairmont_Orchid_Hawaii-Puako_Kohala_Coast_Island_of_Hawaii_Hawaii.html
