@@ -7,54 +7,21 @@
 
 [Header
   title:"Alloe Claims Reporting"
-  subtitle:"Monthly Analysis Report" /]
+  subtitle:"Monthly Analysis Report" 
+  /]
+
+[data name:"test" source:"testdata.csv" /]
+[Table 
+	data:`test.slice(0,10)` 
+	/]
 
 Alloe provides employers monthly status reports on the utilization of employee healthcare.
 These reports are designed to give employers ongoing feedback to monitor preventive care utilization,
 employee subpopulations at-risk, Alloe's Value-On-Investment, employee benchmarking against national statistics,
-and other useful metrics.
+and other useful metrics. 
 
-## Preventive Care Utilization
+
+### Preventive Care Utilization
 **Alloe** recommends employers communicate and encourage employees to utilize preventive care services.
 Under the Affordable Care Act (i.e. *ACA*/*Obamacare*), treatments for preventive services are covered at 100%.
 
-
-Here is how you can use a variable:
-
-[var name:"exampleVar" value:5 /]
-
-[Range min:0 max:10 value:exampleVar /]
-[Display value:exampleVar /]
-
-```
-[var name:"exampleVar" value:5 /]
-
-[Range min:0 max:10 value:exampleVar /]
-[Display value:exampleVar /]
-```
-
-And here is a custom component:
-
-[CustomComponent /]
-
-You can use standard html tags if a
-component with the same name
-doesn't exist.
-
-* *markdown* syntax is supported.
-
-
-
-
-[Aside]
-
-[var name:"state" value:0 /]
-
-This component is implemented using D3:
-
-[CustomD3Component className:"d3-component" state:state /]
-[button onClick:`state++`]
-  Click Me.
-[/button]
-
-[/Aside]
