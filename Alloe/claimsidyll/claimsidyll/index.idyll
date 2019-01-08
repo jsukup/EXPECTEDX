@@ -1,14 +1,14 @@
 [meta title:"Alloe Claims Reporting" description:"Short description of your project" /]
 
 [img
-  src:'static/images/alloelogo.png'
-  style:`{ width: 450, display: 'block', margin: '30px auto' }`
-  /]
+	src:'static/images/alloelogo.png'
+	style:`{ width: 450, display: 'block', margin: '30px auto' }`
+	/]
 
 [Header
-  title:"Alloe Claims Reporting"
-  subtitle:"Monthly Analysis Report" 
-  /]
+	title:"Alloe Claims Reporting"
+	subtitle:"Monthly Analysis Report" 
+	/]
 
 [data name:"test" source:"testdata.csv" /]
 [Table 
@@ -25,3 +25,8 @@ and other useful metrics.
 **Alloe** recommends employers communicate and encourage employees to utilize preventive care services.
 Under the Affordable Care Act (i.e. *ACA*/*Obamacare*), treatments for preventive services are covered at 100%.
 
+[Aside]
+
+
+
+[/Aside]
